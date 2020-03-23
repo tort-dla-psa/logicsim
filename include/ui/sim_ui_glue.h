@@ -2,15 +2,33 @@
 #include <vector>
 #include <utility>
 
+struct gate_view{
+    enum class direction{
+        in,
+        out
+    }dir;
+
+    gate_view(gate_view::direction dir)
+        :dir(dir)
+    {}
+};
 struct elem_view{
-    long x, y, w, h;
+    long x, y, w=10, h=10;
     size_t id;
     enum class type{
         type_and,
         type_or,
         type_not,
         type_custom
-    }t;
+    }t = type::type_custom;
+    enum class direction{
+        dir_up,
+        dir_right,
+        dir_down,
+        dir_left
+    }dir = direction::dir_right;
+    std::vector<gate_view> gates_in,
+        gates_out;
 };
 
 class sim_ui_glue{
@@ -51,10 +69,6 @@ public:
         return ids;
     }
 
-    void add_element(int x, int y, int w, int h, size_t id){
-        elem_view view{x, y, w, h, id};
-        add_element(view);
-    }
     void add_element(const elem_view &view){
         finder.emplace_back(view);
     }
