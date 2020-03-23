@@ -35,4 +35,5 @@ public slots:
 	void draw_rect(int x, int y, int w, int h);
 	void draw_ellipse(int x, int y, int w, int h);
 	void draw_text(QPoint pn, QString str);
+	void draw_image(int x, int y, const QImage& img);
 };
