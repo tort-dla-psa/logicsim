@@ -80,6 +80,9 @@ void draw_widget::draw_text(QPoint pn, QString str){
 	set_instrument(painter);
 	painter.drawText(pn, str);
 }
+void draw_widget::draw_text(int x, int y, QString str){
+	draw_text(QPoint(x, y), str);
+}
 void draw_widget::draw_image(int x, int y, const QImage& img){
 	QPainter painter(&this->img);
 	painter.drawImage(x, y, img);
