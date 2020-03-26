@@ -7,13 +7,15 @@ struct gate_view{
         in,
         out
     }dir;
+    long x, y, w, h;
 
+    gate_view(){}
     gate_view(gate_view::direction dir)
         :dir(dir)
     {}
 };
 struct elem_view{
-    long x, y, w=10, h=10;
+    long x, y, w, h;
     size_t id;
     enum class type{
         type_and,
@@ -41,13 +43,13 @@ public:
         return *_singleton;
     }
 
-    std::vector<elem_view> find_elements(long x, long y){
+    std::vector<elem_view> find_views(long x, long y){
         std::vector<elem_view> ids;
         for(auto &view:finder){
-            if(view.x+view.w < x &&
-                view.x >= x &&
-                view.y+view.h < y &&
-                view.y >= y)
+            if(view.x+view.w > x &&
+                view.x <= x &&
+                view.y+view.h > y &&
+                view.y <= y)
             {
                 ids.emplace_back(view);
             }
@@ -55,7 +57,7 @@ public:
         return ids;
     }
 
-    std::vector<elem_view> find_elements(long x, long y, long w, long h){
+    std::vector<elem_view> find_views(long x, long y, long w, long h){
         std::vector<elem_view> ids;
         for(auto &view:finder){
             if(view.x >= x &&
@@ -69,7 +71,19 @@ public:
         return ids;
     }
 
-    void add_element(const elem_view &view){
-        finder.emplace_back(view);
+    const std::vector<elem_view>& access_views()const{
+        return finder;
+    }
+
+    void add_view(const elem_view &view){
+        auto it = std::find_if(finder.begin(), finder.end(),
+            [&view](const auto &v){
+                return v.id == view.id;
+            });
+        if(it != finder.end()){
+            *it = view;
+        }else{
+            finder.emplace_back(view);
+        }
     }
 };
