@@ -37,4 +37,30 @@ public:
             el->process();
         }
     }
+    void connect_gates(size_t id1, size_t id2){
+        auto it1 = elements.end();
+        auto it2 = elements.end();
+        for(auto it = elements.begin(); it < elements.end(); it++){
+            if(it->get()->get_id() == id1 && 
+                it1 == elements.end())
+            {
+                it1 = it;
+                continue;
+            }
+            if(it->get()->get_id() == id2 && 
+                it2 == elements.end())
+            {
+                it2 = it;
+                break;
+            }
+        }
+        if(it1 == elements.end()){
+            auto mes = "no elements with id "+std::to_string(id1);
+            throw std::runtime_error(mes);
+        }
+        if(it2 == elements.end()){
+            auto mes = "no elements with id "+std::to_string(id2);
+            throw std::runtime_error(mes);
+        }
+    }
 };
