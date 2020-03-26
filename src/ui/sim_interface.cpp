@@ -210,15 +210,14 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
         this->gate_view_1.has_value() &&
         (e->buttons() & Qt::LeftButton))
     {
-        auto items = glue.find_views(x, y);
-        if(!items.empty()){
-            this->view.emplace(items.front());
-            auto gates = glue.get_gates(x, y);
-            if(!gates.empty()){
-                this->mode = mode::connect_gates;
-                this->gate_view_2.emplace(gates.front());
-            }
+        auto gates = glue.get_gates(x, y);
+        if(!gates.empty()){
+            this->mode = mode::connect_gates;
+            this->gate_view_2.emplace(gates.front());
+            sim.connect_gates(gate_view_1->id, gate_view_2->id);
         }
+        this->gate_view_1.reset();
+        this->gate_view_2.reset();
     }
 }
 

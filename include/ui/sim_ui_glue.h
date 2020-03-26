@@ -125,19 +125,19 @@ public:
             auto &gates_in = view.gates_in;
             auto &gates_out = view.gates_out;
             for(auto &gate:gates_in){
-                if(gate.x-gate.w/2 <= x_ &&
-                    gate.y-gate.h/2 <= y_ &&
-                    gate.x+gate.w/2 > x_ &&
-                    gate.y+gate.h/2 > y_)
+                if(gate.x <= x_ &&
+                    gate.y <= y_ &&
+                    gate.x+gate.w > x_ &&
+                    gate.y+gate.h > y_)
                 {
                     gates.emplace_back(gate);
                 } 
             }
             for(auto &gate:gates_out){
-                if(gate.x-gate.w/2 <= x_ &&
-                    gate.y-gate.h/2 <= y_ &&
-                    gate.x+gate.w/2 > x_ &&
-                    gate.y+gate.h/2 > y_)
+                if(gate.x <= x_ &&
+                    gate.y <= y_ &&
+                    gate.x+gate.w > x_ &&
+                    gate.y+gate.h > y_)
                 {
                     gates.emplace_back(gate);
                 } 
