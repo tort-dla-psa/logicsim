@@ -11,6 +11,7 @@ set(UI_HEADERS include/ui/mainwindow.h
 
 set(UI_SRCS src/ui/mainwindow.cpp
 	src/ui/draw_widget.cpp
+	src/ui/sim_interface.cpp
 	)
 
 qt5_wrap_ui(ui_wrap mainwindow.ui)
