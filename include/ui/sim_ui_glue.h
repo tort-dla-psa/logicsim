@@ -87,4 +87,62 @@ public:
             finder.emplace_back(view);
         }
     }
+
+    std::optional<gate_view> get_gate(const elem_view& view, int x, int y){
+        std::optional<gate_view> gate_opt;
+        x -= view.x;
+        y -= view.y;
+        auto &gates_in = view.gates_in;
+        auto &gates_out = view.gates_out;
+        for(auto &gate:gates_in){
+            if(gate.x-gate.w/2 <= x &&
+                gate.y-gate.h/2 <= y &&
+                gate.x+gate.w/2 > x &&
+                gate.y+gate.h/2 > y)
+            {
+                gate_opt = gate;
+                return gate_opt;
+            } 
+        }
+        for(auto &gate:gates_out){
+            if(gate.x-gate.w/2 <= x &&
+                gate.y-gate.h/2 <= y &&
+                gate.x+gate.w/2 > x &&
+                gate.y+gate.h/2 > y)
+            {
+                gate_opt = gate;
+                return gate_opt;
+            } 
+        }
+        return gate_opt;
+    }
+
+    std::vector<gate_view> get_gates(int x, int y){
+        std::vector<gate_view> gates;
+        for(auto &view:this->finder){
+            int x_ =  x - view.x;
+            int y_ =  y - view.y;
+            auto &gates_in = view.gates_in;
+            auto &gates_out = view.gates_out;
+            for(auto &gate:gates_in){
+                if(gate.x-gate.w/2 <= x_ &&
+                    gate.y-gate.h/2 <= y_ &&
+                    gate.x+gate.w/2 > x_ &&
+                    gate.y+gate.h/2 > y_)
+                {
+                    gates.emplace_back(gate);
+                } 
+            }
+            for(auto &gate:gates_out){
+                if(gate.x-gate.w/2 <= x_ &&
+                    gate.y-gate.h/2 <= y_ &&
+                    gate.x+gate.w/2 > x_ &&
+                    gate.y+gate.h/2 > y_)
+                {
+                    gates.emplace_back(gate);
+                } 
+            }
+        }
+        return gates;
+    }
 };

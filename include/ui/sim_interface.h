@@ -21,6 +21,7 @@ class sim_interface : public draw_widget {
     sim_ui_glue& glue;
     std::unique_ptr<element> elem;
     std::optional<elem_view> view;
+    std::optional<gate_view> gate_view_1, gate_view_2;
 	class sim sim;
     size_t w=1000, h=1000,
         default_elem_width=50,
@@ -31,6 +32,7 @@ class sim_interface : public draw_widget {
     enum class mode{
         create,
         select,
+        connect_gates
     }mode;
 
     std::vector<int> pressed_keys;

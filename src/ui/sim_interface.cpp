@@ -176,26 +176,11 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             if(!items.empty()){
                 this->view.emplace(items.front());
                 this->mode = mode::select;
-                auto &gates_in = view->gates_in;
-                auto &gates_out = view->gates_out;
-                for(auto &gate:gates_in){
-                    if(gate.x-gate.w/2 <= x &&
-                        gate.y-gate.y/2 <= y &&
-                        gate.y+gate.y/2 > y &&
-                        gate.y+gate.y/2 > y)
-                    {
-                        return;
-                    } 
-                }
-                for(auto &gate:gates_out){
-                    if(gate.x-gate.w/2 <= x &&
-                        gate.y-gate.y/2 <= y &&
-                        gate.y+gate.y/2 > y &&
-                        gate.y+gate.y/2 > y)
-                    {
-                        return;
-                    } 
-                }
+            }
+            auto gates = glue.get_gates(x, y);
+            if(!gates.empty()){
+                this->mode = mode::connect_gates;
+                this->gate_view_1.emplace(gates.front());
             }
         }
     }
@@ -214,8 +199,27 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
 }
 
 void sim_interface::mouseReleaseEvent(QMouseEvent *e){
+    auto x = e->x();
+    auto y = e->y();
     this->mouse_pos.reset();
     this->mouse_pos_prev.reset();
+    if(this->mode == mode::select && view.has_value()){
+        view.reset();
+    }
+    if(this->mode == mode::connect_gates &&
+        this->gate_view_1.has_value() &&
+        (e->buttons() & Qt::LeftButton))
+    {
+        auto items = glue.find_views(x, y);
+        if(!items.empty()){
+            this->view.emplace(items.front());
+            auto gates = glue.get_gates(x, y);
+            if(!gates.empty()){
+                this->mode = mode::connect_gates;
+                this->gate_view_2.emplace(gates.front());
+            }
+        }
+    }
 }
 
 void sim_interface::keyPressEvent(QKeyEvent* e){
@@ -309,10 +313,15 @@ void sim_interface::paintEvent(QPaintEvent *e) {
         }
     }
     if(mouse_pos_prev.has_value() && mouse_pos.has_value()){
-        draw_rect(std::min(mouse_pos->x(), mouse_pos_prev->x()),
-            std::min(mouse_pos->y(), mouse_pos_prev->y()),
-            std::abs(mouse_pos->x() - mouse_pos_prev->x()),
-            std::abs(mouse_pos->y() - mouse_pos_prev->y()));
+        if(mode == mode::connect_gates){
+            draw_line(mouse_pos->x(), mouse_pos->y(),
+                mouse_pos_prev->x(), mouse_pos_prev->y());
+        }else{
+            draw_rect(std::min(mouse_pos->x(), mouse_pos_prev->x()),
+                std::min(mouse_pos->y(), mouse_pos_prev->y()),
+                std::abs(mouse_pos->x() - mouse_pos_prev->x()),
+                std::abs(mouse_pos->y() - mouse_pos_prev->y()));
+        }
     }
     this->draw_widget::paintEvent(e);
 }
