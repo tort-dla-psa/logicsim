@@ -148,9 +148,15 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
             return;
         }
     }
+    if(this->mouse_pos_prev.has_value()){
+        this->mouse_pos = e->pos();
+        update();
+        return;
+    }
 }
 
 void sim_interface::mousePressEvent(QMouseEvent *e){
+    this->mouse_pos_prev = e->pos();
     auto x = e->x();
     auto y = e->y();
 
@@ -183,6 +189,11 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
         qDebug()<<"";
     }
 #endif
+}
+
+void sim_interface::mouseReleaseEvent(QMouseEvent *e){
+    this->mouse_pos.reset();
+    this->mouse_pos_prev.reset();
 }
 
 void sim_interface::keyPressEvent(QKeyEvent* e){
@@ -274,6 +285,12 @@ void sim_interface::paintEvent(QPaintEvent *e) {
         if(view.has_value()){
             draw_elem_view(pnt, view.value());
         }
+    }
+    if(mouse_pos_prev.has_value() && mouse_pos.has_value()){
+        draw_rect(std::min(mouse_pos->x(), mouse_pos_prev->x()),
+            std::min(mouse_pos->y(), mouse_pos_prev->y()),
+            std::abs(mouse_pos->x() - mouse_pos_prev->x()),
+            std::abs(mouse_pos->y() - mouse_pos_prev->y()));
     }
     this->draw_widget::paintEvent(e);
 }

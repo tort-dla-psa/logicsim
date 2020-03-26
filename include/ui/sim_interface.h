@@ -17,6 +17,7 @@ class sim_interface : public draw_widget {
         double zoom=1.;
     }cam;
 
+    std::optional<QPoint> mouse_pos_prev, mouse_pos;
     sim_ui_glue& glue;
     std::unique_ptr<element> elem;
     std::optional<elem_view> view;
@@ -43,7 +44,7 @@ public:
 
     void mouseMoveEvent(QMouseEvent *e)override;
     void mousePressEvent(QMouseEvent *e)override;
-    //void mouseReleaseEvent(QMouseEvent *e)override;
+    void mouseReleaseEvent(QMouseEvent *e)override;
     void keyPressEvent(QKeyEvent* e);
     void keyReleaseEvent(QKeyEvent* e);
     void paintEvent(QPaintEvent *e);
