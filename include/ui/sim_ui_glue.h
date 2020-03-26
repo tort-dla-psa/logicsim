@@ -7,6 +7,7 @@ struct gate_view{
         in,
         out
     }dir;
+    size_t id;
     long x, y, w, h;
 
     gate_view(){}

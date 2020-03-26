@@ -16,22 +16,40 @@ struct elem_view sim_interface::elem_to_view(const std::unique_ptr<element> &ele
         ((elem_or*)elem.get())? elem_view::type::type_or:
         ((elem_not*)elem.get())? elem_view::type::type_not:
         elem_view::type::type_custom;
-    view.gates_in.resize(elem->get_ins());
-    view.gates_out.resize(elem->get_outs());
-    rotate_view(view);
-    return view;
-}
 
-void sim_interface::rotate_view(elem_view &view){
     std::vector<gate_view> gates_in, gates_out;
     long ins_offset, outs_offset, ins_x, ins_y, outs_x, outs_y;
-    ins_offset = view.h/view.gates_in.size();
-    outs_offset = view.h/view.gates_out.size();
+    ins_offset = view.h/elem->get_ins();
+    outs_offset = view.h/elem->get_outs();
     ins_x = 0;
     ins_y = ins_offset/2;
     outs_x = view.w;
     outs_y = outs_offset/2;
-    
+
+    for(size_t i=0; i<elem->get_ins(); i++){
+        gate_view gt(gate_view::direction::in);
+        gt.w = this->default_gate_w;
+        gt.h = this->default_gate_h;
+        gt.x = ins_x;
+        gt.y = ins_y;
+        gt.id = elem->get_in(i)->get_id();
+        ins_y += ins_offset;
+        view.gates_in.emplace_back(gt);
+    }
+    for(size_t i=0; i<elem->get_outs(); i++){
+        gate_view gt(gate_view::direction::out);
+        gt.w = this->default_gate_w;
+        gt.h = this->default_gate_h;
+        gt.y = outs_y;
+        gt.x = outs_x;
+        gt.id = elem->get_out(i)->get_id();
+        outs_y += outs_offset;
+        view.gates_out.emplace_back(gt);
+    }
+    return view;
+}
+
+void sim_interface::rotate_view(elem_view &view){
     auto rotate = [&view](long &x, long &y){
         QPoint coords(x, y);
         QTransform t;
@@ -49,28 +67,12 @@ void sim_interface::rotate_view(elem_view &view){
         x = coords.x();
         y = coords.y();
     };
-    for(size_t i = 0; i < view.gates_in.size(); i++){
-        gate_view gt(gate_view::direction::in);
-        gt.w = this->default_gate_w;
-        gt.h = this->default_gate_h;
-        gt.x = ins_x;
-        gt.y = ins_y;
-        rotate(gt.x, gt.y);
-        ins_y += ins_offset;
-        gates_in.emplace_back(gt);
+    for(auto &gate_in:view.gates_in){
+        rotate(gate_in.x, gate_in.y);
     }
-    for(size_t i = 0; i < view.gates_out.size(); i++){
-        gate_view gt(gate_view::direction::out);
-        gt.w = this->default_gate_w;
-        gt.h = this->default_gate_h;
-        gt.y = outs_y;
-        gt.x = outs_x;
-        rotate(gt.x, gt.y);
-        outs_y += outs_offset;
-        gates_out.emplace_back(gt);
+    for(auto &gate_out:view.gates_out){
+        rotate(gate_out.x, gate_out.y);
     }
-    view.gates_in = gates_in;
-    view.gates_out = gates_out;
 }
 
 void sim_interface::draw_elem_view(QPainter &pnt, const struct elem_view &view){
@@ -174,6 +176,26 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             if(!items.empty()){
                 this->view.emplace(items.front());
                 this->mode = mode::select;
+                auto &gates_in = view->gates_in;
+                auto &gates_out = view->gates_out;
+                for(auto &gate:gates_in){
+                    if(gate.x-gate.w/2 <= x &&
+                        gate.y-gate.y/2 <= y &&
+                        gate.y+gate.y/2 > y &&
+                        gate.y+gate.y/2 > y)
+                    {
+                        return;
+                    } 
+                }
+                for(auto &gate:gates_out){
+                    if(gate.x-gate.w/2 <= x &&
+                        gate.y-gate.y/2 <= y &&
+                        gate.y+gate.y/2 > y &&
+                        gate.y+gate.y/2 > y)
+                    {
+                        return;
+                    } 
+                }
             }
         }
     }
