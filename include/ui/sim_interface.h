@@ -20,8 +20,8 @@ class sim_interface : public draw_widget {
     std::optional<QPoint> mouse_pos_prev, mouse_pos;
     sim_ui_glue& glue;
     std::unique_ptr<element> elem;
-    std::optional<elem_view> view;
-    std::optional<gate_view> gate_view_1, gate_view_2;
+    std::shared_ptr<elem_view> view;
+    std::shared_ptr<gate_view> gate_view_1, gate_view_2;
 	class sim sim;
     size_t w=1000, h=1000,
         default_elem_width=50,
@@ -37,9 +37,9 @@ class sim_interface : public draw_widget {
 
     std::vector<int> pressed_keys;
 
-    struct elem_view elem_to_view(const std::unique_ptr<element> &elem);
-    void draw_elem_view(QPainter &pnt, const struct elem_view &view);
-    void rotate_view(struct elem_view &view);
+    std::shared_ptr<elem_view> elem_to_view(const std::unique_ptr<element> &elem);
+    void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
+    void rotate_view(std::shared_ptr<elem_view> &view);
 public:
 	sim_interface(QWidget *parent = nullptr);
     virtual ~sim_interface();
