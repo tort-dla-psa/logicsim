@@ -40,25 +40,14 @@ public:
     void connect_gates(size_t id1, size_t id2){
         std::shared_ptr<gate> gt1, gt2;
         for(auto it = elements.begin(); it < elements.end(); it++){
-            auto &gates_in = (*it)->access_ins();
-            for(auto gt_in = gates_in.begin(); gt_in != gates_in.end(); gt_in++){
-                if(gt_in->get()->get_id() == id1 && !gt1){
-                    gt1 = *gt_in;
+            auto &gates = (*it)->access_gates();
+            for(auto gt = gates.begin(); gt != gates.end(); gt++){
+                if(gt->get()->get_id() == id1 && !gt1){
+                    gt1 = *gt;
                     continue;
                 }
-                if(gt_in->get()->get_id() == id2 && !gt2){
-                    gt2 = *gt_in;
-                    break;
-                }
-            }
-            auto &gates_out = (*it)->access_ins();
-            for(auto gt_out = gates_out.begin(); gt_out != gates_out.end(); gt_out++){
-                if(gt_out->get()->get_id() == id1 && !gt1){
-                    gt1 = *gt_out;
-                    continue;
-                }
-                if(gt_out->get()->get_id() == id2 && !gt2){
-                    gt2 = *gt_out;
+                if(gt->get()->get_id() == id2 && !gt2){
+                    gt2 = *gt;
                     break;
                 }
             }

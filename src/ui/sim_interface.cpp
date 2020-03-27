@@ -104,12 +104,12 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     pnt.end();
 
     draw_widget::draw_image(draw_x, draw_y, img);
-    for(auto &gate:gates_in){
-        for(auto &gt:gate->gates_out){
+    for(auto &gate:gates_out){
+        for(auto &gt:gate->gates_in){
             draw_widget::draw_line(gate->x+gate->parent->x,
                 gate->y+gate->parent->y,
-                gt->x+gate->parent->x,
-                gt->y+gate->parent->y);
+                gt->x+gt->parent->x,
+                gt->y+gt->parent->y);
         }
     }
 
@@ -224,7 +224,7 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
     this->mouse_pos.reset();
     this->mouse_pos_prev.reset();
     if(this->mode == mode::select && view){
-        view.reset();
+        view = nullptr;
     }
     if(this->mode == mode::connect_gates && this->gate_view_1) {
         auto gates = glue.get_gates(x, y);
@@ -237,7 +237,7 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
             if(cast_in){
                 auto cast_out_2 = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_2);
                 if(cast_out_2){
-                    cast_in->gates_out.emplace_back(cast_out_2);
+                    cast_out_2->gates_in.emplace_back(cast_in);
                 }else{ //TODO:throw dialog
                 }
             }else if(cast_out){
