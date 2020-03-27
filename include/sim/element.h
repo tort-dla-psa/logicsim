@@ -9,6 +9,7 @@ class element:public nameable{
 protected:
     std::vector<std::shared_ptr<gate_in>> ins;
     std::vector<std::shared_ptr<gate_out>> outs;
+    std::vector<std::shared_ptr<gate>> gates;
 public:
     element(const std::string &name)
         :nameable(name)
@@ -16,6 +17,12 @@ public:
     virtual ~element(){}
     virtual void process()=0;
 
+    auto& access_gates(){
+        return gates;
+    }
+    const auto& access_gates()const{
+        return gates;
+    }
     auto& access_ins(){
         return ins;
     }
@@ -42,6 +49,7 @@ public:
     }
     void add_in(const std::shared_ptr<gate_in> in){
         ins.emplace_back(in);
+        gates.emplace_back(in);
     }
     void add_in(const std::shared_ptr<gate_in> in, size_t place){
         if(place > ins.size()){
@@ -51,9 +59,11 @@ public:
             throw std::runtime_error(mes);
         }
         ins.emplace(ins.begin()+place, in);
+        gates.emplace_back(in);
     }
     void add_out(const std::shared_ptr<gate_out> out){
         outs.emplace_back(out);
+        gates.emplace_back(out);
     }
     void add_out(const std::shared_ptr<gate_out> out, size_t place){
         if(place > outs.size()){
@@ -63,5 +73,6 @@ public:
             throw std::runtime_error(mes);
         }
         outs.emplace(outs.begin()+place, out);
+        gates.emplace_back(out);
     }
 };
