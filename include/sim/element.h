@@ -16,6 +16,18 @@ public:
     virtual ~element(){}
     virtual void process()=0;
 
+    auto& access_ins(){
+        return ins;
+    }
+    const auto& access_ins()const{
+        return ins;
+    }
+    auto& access_outs(){
+        return outs;
+    }
+    const auto& access_outs()const{
+        return outs;
+    }
     size_t get_ins()const{
         return ins.size();
     }
