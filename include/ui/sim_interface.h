@@ -54,4 +54,6 @@ public slots:
     void add_elem_and();
     void add_elem_or();
     void add_elem_not();
+    void add_elem_in();
+    void add_elem_out();
 };

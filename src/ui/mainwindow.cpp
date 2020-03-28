@@ -13,6 +13,10 @@ MainWindow::MainWindow(QWidget *parent)
 		sim_iface, &sim_interface::add_elem_or);
 	connect(ui->btn_not, &QPushButton::pressed,
 		sim_iface, &sim_interface::add_elem_not);
+	connect(ui->btn_in, &QPushButton::pressed,
+		sim_iface, &sim_interface::add_elem_in);
+	connect(ui->btn_out, &QPushButton::pressed,
+		sim_iface, &sim_interface::add_elem_out);
 }
 
 MainWindow::~MainWindow(){

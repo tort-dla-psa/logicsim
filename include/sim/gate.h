@@ -4,6 +4,7 @@
 #include "nameable.h"
 
 class gate:public nameable{
+protected:
     size_t width;
     std::vector<bool> values;
 public:

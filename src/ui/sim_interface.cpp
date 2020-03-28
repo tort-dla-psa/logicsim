@@ -371,3 +371,13 @@ void sim_interface::add_elem_not(){
     elem = std::make_unique<elem_not>("not");
     this->view = elem_to_view(elem);
 }
+void sim_interface::add_elem_in(){
+    this->mode = mode::create;
+    elem = std::make_unique<elem_in>("in");
+    this->view = elem_to_view(elem);
+}
+void sim_interface::add_elem_out(){
+    this->mode = mode::create;
+    elem = std::make_unique<elem_out>("not");
+    this->view = elem_to_view(elem);
+}

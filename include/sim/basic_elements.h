@@ -58,3 +58,27 @@ public:
         out1->pass_value({!in1->get_value(0)});
     }
 };
+
+class elem_out:public element, public gate_out{
+public:
+    elem_out(const std::string &name, size_t width=1)
+        :element(name),
+        gate_out(name+"out_1", width)
+    {}
+
+    void process()override{
+        this->pass_value();
+    }
+};
+
+class elem_in:public element, public gate_in{
+public:
+    elem_in(const std::string &name, size_t width=1)
+        :element(name),
+        gate_in(name+"in_1", width)
+    {}
+
+    void process()override{
+        //TODO:add logger
+    }
+};
