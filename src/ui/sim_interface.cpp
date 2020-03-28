@@ -1,4 +1,5 @@
 #include "sim_interface.h"
+#include <QInputDialog>
 
 #define DEBUG_VIEW
 #define DEBUG_SIM_GLUE
@@ -197,6 +198,26 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             if(!items.empty()){
                 this->view = items.front();
                 this->mode = mode::select;
+                if(this->view->t == elem_view::type::type_out){
+                    int input = QInputDialog::getInt(this, "input value", "input value to pass");
+                    std::vector<bool> bits(sizeof(input)*8);
+                    int most_right_bit=0;
+                    for(size_t i=0; i<bits.size(); i++){
+                        bool bit = (input>>i)&1;
+                        if(bit){
+                            most_right_bit = i;
+                        }
+                        bits.at(i) = bit;
+                    }
+                    auto out_width = sim.get_out_width(view->id);
+                    if(most_right_bit > out_width){
+                        //TODO:warning
+                        bits.erase(bits.begin()+most_right_bit, bits.end());
+                    }else if(most_right_bit < out_width){
+                        bits.resize(out_width);
+                    }
+                    sim.set_out_value(this->view->id, bits);
+                }
             }
             auto gates = glue.get_gates(x, y);
             if(!gates.empty()){
@@ -389,6 +410,6 @@ void sim_interface::add_elem_in(){
 }
 void sim_interface::add_elem_out(){
     this->mode = mode::create;
-    elem = std::make_unique<elem_out>("not");
+    elem = std::make_unique<elem_out>("out");
     this->view = elem_to_view(elem);
 }
