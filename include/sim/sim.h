@@ -22,6 +22,17 @@ private:
         }
         return el;
     }
+    template<class T>
+    auto find_type_by_id(size_t id){
+        auto el = *find_by_id(id);
+        auto out = std::dynamic_pointer_cast<T>(el);
+        if(!out){
+            auto mes = "element with id "+std::to_string(id)
+                +" has not requested type";
+            throw std::runtime_error(mes);
+        }
+        return out;
+    }
 public:
     std::shared_ptr<element>& get_element(size_t id){
         return *find_by_id(id);
@@ -36,6 +47,18 @@ public:
         for(auto &el:elements){
             el->process();
         }
+    }
+    void set_out_value(size_t id, const std::vector<bool> &val){
+        auto el = find_type_by_id<elem_out>(id);
+        el->set_values(val);
+    }
+    auto get_out_value(size_t id){
+        auto el = find_type_by_id<elem_out>(id);
+        return el->get_values();
+    }
+    size_t get_out_width(size_t id){
+        auto el = find_type_by_id<elem_out>(id);
+        return el->get_width();
     }
     void connect_gates(size_t id1, size_t id2){
         std::shared_ptr<gate> gt1, gt2;
