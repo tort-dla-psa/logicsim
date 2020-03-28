@@ -32,7 +32,7 @@ public:
     void set_values(const std::vector<bool> &values){
         if(values.size() != this->width){
             auto mes = "attempt to assign value of width "+std::to_string(values.size())+
-                "to a gate "+get_name()+" with width "+std::to_string(width);
+                " to a gate "+get_name()+" with width "+std::to_string(width);
             throw std::runtime_error(mes);
         }
         this->values = values;
