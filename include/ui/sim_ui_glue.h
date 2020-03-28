@@ -40,6 +40,8 @@ struct elem_view{
         type_and,
         type_or,
         type_not,
+        type_in,
+        type_out,
         type_custom
     }t = type::type_custom;
     enum class direction{

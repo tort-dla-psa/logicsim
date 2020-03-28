@@ -14,6 +14,8 @@ public:
         this->width = width;
         values.resize(width);
     }
+    virtual ~gate(){}
+
     size_t get_width()const{
         return width;
     }

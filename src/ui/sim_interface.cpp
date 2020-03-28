@@ -12,41 +12,52 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::unique_ptr<ele
     view->id = id;
     view->dir = elem_view::direction::dir_right;
 
-    view->t = ((elem_and*)elem.get())? elem_view::type::type_and:
-        ((elem_or*)elem.get())? elem_view::type::type_or:
-        ((elem_not*)elem.get())? elem_view::type::type_not:
+    view->t = dynamic_cast<elem_and*>(elem.get())? elem_view::type::type_and:
+        dynamic_cast<elem_or*>(elem.get())? elem_view::type::type_or:
+        dynamic_cast<elem_not*>(elem.get())? elem_view::type::type_not:
+        dynamic_cast<elem_in*>(elem.get())? elem_view::type::type_in:
+        dynamic_cast<elem_out*>(elem.get())? elem_view::type::type_out:
         elem_view::type::type_custom;
 
-    std::vector<std::shared_ptr<gate_view>> gates_in, gates_out;
-    long ins_offset, outs_offset, ins_x, ins_y, outs_x, outs_y;
-    ins_offset = view->h/elem->get_ins();
-    outs_offset = view->h/elem->get_outs();
-    ins_x = 0;
-    ins_y = ins_offset/2;
-    outs_x = view->w;
-    outs_y = outs_offset/2;
-
-    for(size_t i=0; i<elem->get_ins(); i++){
-        auto gt = std::make_shared<gate_view_in>();
-        gt->w = this->default_gate_w;
-        gt->h = this->default_gate_h;
-        gt->x = ins_x;
-        gt->y = ins_y;
-        gt->id = elem->get_in(i)->get_id();
-        gt->parent = view;
-        ins_y += ins_offset;
-        view->gates_in.emplace_back(gt);
+    if(elem->get_ins() != 0){
+        long ins_offset = view->h/elem->get_ins();
+        long ins_x = 0;
+        long ins_y = ins_offset/2;
+        for(size_t i=0; i<elem->get_ins(); i++){
+            auto gt = std::make_shared<gate_view_in>();
+            gt->w = this->default_gate_w;
+            gt->h = this->default_gate_h;
+            gt->x = ins_x;
+            gt->y = ins_y;
+            if(view->t == elem_view::type::type_in){
+                gt->id = ((elem_in*)elem.get())->get_in_id();
+            }else{
+                gt->id = elem->get_in(i)->get_id();
+            }
+            gt->parent = view;
+            ins_y += ins_offset;
+            view->gates_in.emplace_back(gt);
+        }
     }
-    for(size_t i=0; i<elem->get_outs(); i++){
-        auto gt = std::make_shared<gate_view_out>();
-        gt->w = this->default_gate_w;
-        gt->h = this->default_gate_h;
-        gt->y = outs_y;
-        gt->x = outs_x;
-        gt->id = elem->get_out(i)->get_id();
-        gt->parent = view;
-        outs_y += outs_offset;
-        view->gates_out.emplace_back(gt);
+    if(elem->get_outs() != 0){
+        long outs_offset = view->h/elem->get_outs();
+        long outs_x = view->w;
+        long outs_y = outs_offset/2;
+        for(size_t i=0; i<elem->get_outs(); i++){
+            auto gt = std::make_shared<gate_view_out>();
+            gt->w = this->default_gate_w;
+            gt->h = this->default_gate_h;
+            gt->y = outs_y;
+            gt->x = outs_x;
+            if(view->t == elem_view::type::type_out){
+                gt->id = ((elem_out*)elem.get())->get_out_id();
+            }else{
+                gt->id = elem->get_out(i)->get_id();
+            }
+            gt->parent = view;
+            outs_y += outs_offset;
+            view->gates_out.emplace_back(gt);
+        }
     }
     return view;
 }

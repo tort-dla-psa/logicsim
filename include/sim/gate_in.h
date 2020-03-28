@@ -6,4 +6,5 @@ public:
     gate_in(const std::string &name, size_t width=1)
         :gate(name, width)
     {}
+    virtual ~gate_in(){}
 };

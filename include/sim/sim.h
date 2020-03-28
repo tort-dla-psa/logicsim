@@ -8,7 +8,7 @@
 
 class sim{
 private:
-    std::vector<std::unique_ptr<element>> elements;
+    std::vector<std::shared_ptr<element>> elements;
     auto find_by_id(size_t id){
         auto el = std::find_if(elements.begin(), elements.end(),
             [&id](const auto &el){
@@ -23,7 +23,7 @@ private:
         return el;
     }
 public:
-    std::unique_ptr<element>& get_element(size_t id){
+    std::shared_ptr<element>& get_element(size_t id){
         return *find_by_id(id);
     }
     void delete_element(size_t id){
@@ -49,6 +49,20 @@ public:
                 if(gt->get()->get_id() == id2 && !gt2){
                     gt2 = *gt;
                     break;
+                }
+            }
+            {
+                auto cast = std::dynamic_pointer_cast<gate>(*it);
+                if(cast->get_id() == id1 && !gt1){
+                    gt1 = cast;
+                    continue;
+                }
+            }
+            {
+                auto cast = std::dynamic_pointer_cast<gate>(*it);
+                if(cast->get_id() == id2 && !gt2){
+                    gt2 = cast;
+                    continue;
                 }
             }
         }

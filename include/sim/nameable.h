@@ -26,7 +26,7 @@ public:
         this->id = id_assigner::get_instance().get_id();
     }
     virtual ~nameable(){};
-    size_t get_id()const{
+    virtual size_t get_id()const{
         return id;
     }
     const std::string& get_name()const{

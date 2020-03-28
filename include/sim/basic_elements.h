@@ -15,6 +15,7 @@ public:
         element::add_in(in2);
         element::add_out(out1);
     }
+    virtual ~elem_and(){}
 
     void process()override{
         out1->pass_value({in1->get_value(0) && in2->get_value(0)});
@@ -35,6 +36,7 @@ public:
         element::add_in(in2);
         element::add_out(out1);
     }
+    virtual ~elem_or(){}
 
     void process()override{
         out1->pass_value({in1->get_value(0) || in2->get_value(0)});
@@ -53,6 +55,7 @@ public:
         element::add_in(in1);
         element::add_out(out1);
     }
+    virtual ~elem_not(){}
 
     void process()override{
         out1->pass_value({!in1->get_value(0)});
@@ -65,9 +68,23 @@ public:
         :element(name),
         gate_out(name+"out_1", width)
     {}
+    virtual ~elem_out(){}
 
     void process()override{
         this->pass_value();
+    }
+
+    size_t get_outs()const override{
+        return 1;
+    }
+
+    size_t get_out_id()const{
+        return gate_out::get_id();
+    }
+
+    std::shared_ptr<gate_out> get_out(size_t place)const override{
+        throw std::runtime_error("elem::get_out should not be called");
+        return nullptr;
     }
 };
 
@@ -77,8 +94,22 @@ public:
         :element(name),
         gate_in(name+"in_1", width)
     {}
+    virtual ~elem_in(){}
 
     void process()override{
         //TODO:add logger
+    }
+
+    size_t get_ins()const override{
+        return 1;
+    }
+
+    size_t get_in_id()const{
+        return gate_in::get_id();
+    }
+
+    std::shared_ptr<gate_in> get_in(size_t place)const override{
+        throw std::runtime_error("elem::get_in should not be called");
+        return nullptr;
     }
 };

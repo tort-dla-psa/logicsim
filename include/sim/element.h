@@ -35,16 +35,16 @@ public:
     const auto& access_outs()const{
         return outs;
     }
-    size_t get_ins()const{
+    virtual size_t get_ins()const{
         return ins.size();
     }
-    size_t get_outs()const{
+    virtual size_t get_outs()const{
         return outs.size();
     }
-    auto get_in(size_t place)const{
+    virtual std::shared_ptr<gate_in> get_in(size_t place)const{
         return ins.at(place);
     }
-    auto get_out(size_t place)const{
+    virtual std::shared_ptr<gate_out> get_out(size_t place)const{
         return outs.at(place);
     }
     void add_in(const std::shared_ptr<gate_in> in){

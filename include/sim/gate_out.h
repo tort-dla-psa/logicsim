@@ -11,6 +11,8 @@ public:
     gate_out(const std::string &name, size_t width=1)
         :gate(name, width)
     {}
+    virtual ~gate_out(){}
+
     void pass_value()const{
         for(auto &in:ins){
             in->set_values(this->get_values());
