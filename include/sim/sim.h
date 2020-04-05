@@ -76,14 +76,14 @@ public:
             }
             {
                 auto cast = std::dynamic_pointer_cast<gate>(*it);
-                if(cast->get_id() == id1 && !gt1){
+                if(!gt1 && cast && cast->get_id() == id1){
                     gt1 = cast;
                     continue;
                 }
             }
             {
                 auto cast = std::dynamic_pointer_cast<gate>(*it);
-                if(cast->get_id() == id2 && !gt2){
+                if(!gt2 && cast && cast->get_id() == id2){
                     gt2 = cast;
                     continue;
                 }
