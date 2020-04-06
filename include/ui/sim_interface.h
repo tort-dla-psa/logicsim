@@ -40,6 +40,9 @@ class sim_interface : public draw_widget {
     std::shared_ptr<elem_view> elem_to_view(const std::unique_ptr<element> &elem);
     void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
     void rotate_view(std::shared_ptr<elem_view> &view);
+
+    size_t vec_to_val(const std::vector<bool> &vec);
+    std::vector<bool> val_to_vec(const size_t &vec);
 public:
 	sim_interface(QWidget *parent = nullptr);
     virtual ~sim_interface();

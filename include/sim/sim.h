@@ -60,6 +60,14 @@ public:
         auto el = find_type_by_id<elem_out>(id);
         return el->get_width();
     }
+    auto get_in_value(size_t id, size_t place){
+        auto el = *find_by_id(id);
+        return el->get_in(place)->get_values();
+    }
+    auto get_out_value(size_t id, size_t place){
+        auto el = *find_by_id(id);
+        return el->get_out(place)->get_values();
+    }
     void connect_gates(size_t id1, size_t id2){
         std::shared_ptr<gate> gt1, gt2;
         for(auto it = elements.begin(); it < elements.end(); it++){

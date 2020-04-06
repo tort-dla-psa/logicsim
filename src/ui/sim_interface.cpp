@@ -113,6 +113,16 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         pnt.drawRect(gate->x*cam.zoom, gate->y*cam.zoom,
             gate->w*cam.zoom, gate->h*cam.zoom);
     }
+
+    if(view->t == elem_view::type::type_in){
+        auto bit_val = sim.get_in_value(view->id, 0);
+        auto val = vec_to_val(bit_val);
+        pnt.drawText(view->x, view->y, QString::number(val));
+    }else if(view->t == elem_view::type::type_out){
+        auto bit_val = sim.get_out_value(view->id, 0);
+        auto val = vec_to_val(bit_val);
+        pnt.drawText(view->x, view->y, QString::number(val));
+    }
     pnt.end();
 
     draw_widget::draw_image(draw_x, draw_y, img);
@@ -135,12 +145,23 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         draw_text(draw_x+gate.x, draw_y+gate.y, txt);
     }
 #endif
-#ifdef DEBUG_VIEW
-    {
-        QString txt = QString::number(view->x)+" "+QString::number(view->y);
-        draw_text(draw_x, draw_y, txt);
+}
+
+size_t sim_interface::vec_to_val(const std::vector<bool> &vec){
+    size_t result = 0;
+    for(size_t i=0; i<sizeof(size_t)*8; i++){
+        result |= vec.at(i);
+        result <<= 1;
     }
-#endif
+    return result;
+}
+std::vector<bool> sim_interface::val_to_vec(const size_t &val){
+    std::vector<bool> result;
+    for(size_t i=0; i<sizeof(size_t)*8; i++){
+        bool tmp = (val >> (sizeof(size_t)*8-1))&1;
+        result.push_back(tmp);
+    }
+    return result;
 }
 
 sim_interface::sim_interface(QWidget* parent)
@@ -197,7 +218,6 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             auto items = glue.find_views(x, y);
             if(!items.empty()){
                 this->view = items.front();
-                this->mode = mode::select;
                 if(this->view->t == elem_view::type::type_out){
                     int input = QInputDialog::getInt(this, "input value", "input value to pass");
                     std::vector<bool> bits(sizeof(input)*8);
@@ -217,6 +237,8 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
                         bits.resize(out_width);
                     }
                     sim.set_out_value(this->view->id, bits);
+                }else{
+                    this->mode = mode::select;
                 }
             }
             auto gates = glue.get_gates(x, y);
