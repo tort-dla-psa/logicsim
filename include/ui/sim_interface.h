@@ -61,4 +61,7 @@ public slots:
     void add_elem_not();
     void add_elem_in();
     void add_elem_out();
+signals:
+    void element_selected(std::shared_ptr<elem_view> view);
+    void element_changed(std::shared_ptr<elem_view> view);
 };

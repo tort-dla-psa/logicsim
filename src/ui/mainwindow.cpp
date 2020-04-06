@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
 		sim_iface, &sim_interface::add_elem_in);
 	connect(ui->btn_out, &QPushButton::pressed,
 		sim_iface, &sim_interface::add_elem_out);
+	connect(ui->sim_view_wdgt, &sim_interface::element_selected,
+		ui->props, &properties::slot_element_selected);
 }
 
 MainWindow::~MainWindow(){

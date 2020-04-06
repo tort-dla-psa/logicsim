@@ -185,6 +185,7 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
     if(mode == mode::create && current_id.has_value()){
         view->x = x;
         view->y = y;
+        emit element_selected(view);
         update();
         return;
     }
@@ -193,6 +194,7 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
             view->x = x;
             view->y = y;
             glue.add_view(view);
+            emit element_selected(view);
             update();
             return;
         }
