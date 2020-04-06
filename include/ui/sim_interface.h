@@ -19,7 +19,8 @@ class sim_interface : public draw_widget {
 
     std::optional<QPoint> mouse_pos_prev, mouse_pos;
     sim_ui_glue& glue;
-    std::unique_ptr<element> elem;
+
+    std::optional<size_t> current_id;
     std::shared_ptr<elem_view> view;
     std::shared_ptr<gate_view> gate_view_1, gate_view_2;
 	class sim sim;
@@ -37,7 +38,8 @@ class sim_interface : public draw_widget {
 
     std::vector<int> pressed_keys;
 
-    std::shared_ptr<elem_view> elem_to_view(const std::unique_ptr<element> &elem);
+    std::shared_ptr<elem_view> elem_to_view(const std::shared_ptr<element> &elem);
+    std::shared_ptr<elem_view> elem_to_view(size_t id);
     void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
     void rotate_view(std::shared_ptr<elem_view> &view);
 

@@ -9,7 +9,8 @@ class gate_out:public gate{
     std::vector<std::shared_ptr<gate_in>> ins;
 public:
     gate_out(const std::string &name, size_t width=1)
-        :gate(name, width)
+        :gate(name, width),
+        nameable(name)
     {}
     virtual ~gate_out(){}
 

@@ -43,6 +43,12 @@ public:
     void add_element(std::unique_ptr<element> &&el){
         elements.emplace_back(std::move(el));
     }
+    template<class T, typename ... Args>
+    size_t create_element(Args... args){
+        const auto el = std::make_shared<T>(args...);
+        elements.emplace_back(el);
+        return el->T::get_id();
+    }
     void start(){
         for(auto &el:elements){
             el->process();
@@ -62,10 +68,30 @@ public:
     }
     auto get_in_value(size_t id, size_t place){
         auto el = *find_by_id(id);
+        auto in_cast = std::dynamic_pointer_cast<gate_in>(el);
+        if(in_cast){
+            if(place == 0){
+                return in_cast->get_values();
+            }else{
+                auto mes = "asked value of input number "+std::to_string(place)+
+                    ", which is illegal";
+                throw std::runtime_error(mes);
+            }
+        }
         return el->get_in(place)->get_values();
     }
     auto get_out_value(size_t id, size_t place){
         auto el = *find_by_id(id);
+        auto out_cast = std::dynamic_pointer_cast<gate_out>(el);
+        if(out_cast){
+            if(place == 0){
+                return out_cast->get_values();
+            }else{
+                auto mes = "asked value of output number "+std::to_string(place)+
+                    ", which is illegal";
+                throw std::runtime_error(mes);
+            }
+        }
         return el->get_out(place)->get_values();
     }
     void connect_gates(size_t id1, size_t id2){

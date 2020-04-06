@@ -8,7 +8,8 @@ protected:
     std::vector<std::unique_ptr<element>> elements;
 public:
     meta_element(const std::string &name)
-        :element(name)
+        :element(name),
+        nameable(name)
     {}
     virtual ~meta_element(){}
 

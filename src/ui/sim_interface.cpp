@@ -4,7 +4,11 @@
 #define DEBUG_VIEW
 #define DEBUG_SIM_GLUE
 
-std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::unique_ptr<element> &elem){
+std::shared_ptr<elem_view> sim_interface::elem_to_view(size_t id){
+    const auto &el = sim.get_element(id);
+    return elem_to_view(el);
+}
+std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<element> &elem){
     auto view = std::make_shared<elem_view>();
     auto id = elem->get_id();
 
@@ -113,17 +117,17 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         pnt.drawRect(gate->x*cam.zoom, gate->y*cam.zoom,
             gate->w*cam.zoom, gate->h*cam.zoom);
     }
+    pnt.end();
 
     if(view->t == elem_view::type::type_in){
         auto bit_val = sim.get_in_value(view->id, 0);
         auto val = vec_to_val(bit_val);
-        pnt.drawText(view->x, view->y, QString::number(val));
+        draw_text(view->x, view->y, QString::number(val));
     }else if(view->t == elem_view::type::type_out){
         auto bit_val = sim.get_out_value(view->id, 0);
         auto val = vec_to_val(bit_val);
-        pnt.drawText(view->x, view->y, QString::number(val));
+        draw_text(view->x, view->y, QString::number(val));
     }
-    pnt.end();
 
     draw_widget::draw_image(draw_x, draw_y, img);
     for(auto &gate:gates_out){
@@ -149,7 +153,7 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
 
 size_t sim_interface::vec_to_val(const std::vector<bool> &vec){
     size_t result = 0;
-    for(size_t i=0; i<sizeof(size_t)*8; i++){
+    for(size_t i=0; i<sizeof(size_t)*8 && i<vec.size(); i++){
         result |= vec.at(i);
         result <<= 1;
     }
@@ -178,7 +182,7 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
     auto x = e->x();
     auto y = e->y();
 
-    if(mode == mode::create && elem){
+    if(mode == mode::create && current_id.has_value()){
         view->x = x;
         view->y = y;
         update();
@@ -205,11 +209,10 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
     auto x = e->x();
     auto y = e->y();
 
-    if(elem){
+    if(current_id.has_value()){
         if(e->buttons() & Qt::LeftButton){
             glue.add_view(view);
-            sim.add_element(std::move(elem));
-            elem = nullptr;
+            current_id.reset();
             view = nullptr;
             update();
         }
@@ -322,7 +325,7 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
         Qt::Key_Equal) != pressed_keys.end();
     bool minus = std::find(pressed_keys.begin(), pressed_keys.end(),
         Qt::Key_Minus) != pressed_keys.end();
-    if(elem){
+    if(current_id.has_value()){
         if(ctrl && (left || right)){
             int cast = (int)view->dir;
             if(left){
@@ -385,7 +388,7 @@ void sim_interface::paintEvent(QPaintEvent *e) {
         draw_elem_view(pnt, el);
     }
     //to draw created or selected element
-    if(mode == mode::create && elem){
+    if(mode == mode::create && current_id.has_value()){
         if(view){
             draw_elem_view(pnt, view);
         }else{
@@ -412,26 +415,26 @@ void sim_interface::paintEvent(QPaintEvent *e) {
 
 void sim_interface::add_elem_and(){
     this->mode = mode::create;
-    elem = std::make_unique<elem_and>("add");
-    this->view = elem_to_view(elem);
+    this->current_id = sim.create_element<elem_and>("add");
+    this->view = elem_to_view(this->current_id.value());
 }
 void sim_interface::add_elem_or(){
     this->mode = mode::create;
-    elem = std::make_unique<elem_or>("or");
-    this->view = elem_to_view(elem);
+    this->current_id = sim.create_element<elem_or>("or");
+    this->view = elem_to_view(this->current_id.value());
 }
 void sim_interface::add_elem_not(){
     this->mode = mode::create;
-    elem = std::make_unique<elem_not>("not");
-    this->view = elem_to_view(elem);
+    this->current_id = sim.create_element<elem_not>("not");
+    this->view = elem_to_view(this->current_id.value());
 }
 void sim_interface::add_elem_in(){
     this->mode = mode::create;
-    elem = std::make_unique<elem_in>("in");
-    this->view = elem_to_view(elem);
+    this->current_id = sim.create_element<elem_in>("in");
+    this->view = elem_to_view(this->current_id.value());
 }
 void sim_interface::add_elem_out(){
     this->mode = mode::create;
-    elem = std::make_unique<elem_out>("out");
-    this->view = elem_to_view(elem);
+    this->current_id = sim.create_element<elem_out>("out");
+    this->view = elem_to_view(this->current_id.value());
 }

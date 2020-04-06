@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include "nameable.h"
 
-class gate:public nameable{
+class gate:virtual public nameable{
 protected:
     size_t width;
     std::vector<bool> values;

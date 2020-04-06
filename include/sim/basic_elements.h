@@ -6,7 +6,8 @@ class elem_and:public element{
     std::shared_ptr<gate_out> out1;
 public:
     elem_and(const std::string &name)
-        :element(name)
+        :element(name),
+        nameable(name)
     {
         in1 = std::make_shared<gate_in>(name+"+in_0");
         in2 = std::make_shared<gate_in>(name+"+in_1");
@@ -27,7 +28,8 @@ class elem_or:public element{
     std::shared_ptr<gate_out> out1;
 public:
     elem_or(const std::string &name)
-        :element(name)
+        :element(name),
+        nameable(name)
     {
         in1 = std::make_shared<gate_in>(name+"+in_0");
         in2 = std::make_shared<gate_in>(name+"+in_1");
@@ -48,7 +50,8 @@ class elem_not:public element{
     std::shared_ptr<gate_out> out1;
 public:
     elem_not(const std::string &name)
-        :element(name)
+        :element(name),
+        nameable(name)
     {
         in1 = std::make_shared<gate_in>(name+"+in_0");
         out1 = std::make_shared<gate_out>(name+"+out_1");
@@ -66,7 +69,8 @@ class elem_out:public element, public gate_out{
 public:
     elem_out(const std::string &name, size_t width=1)
         :element(name),
-        gate_out(name+"out_1", width)
+        gate_out(name+"out_1", width),
+        nameable(name)
     {}
     virtual ~elem_out(){}
 
@@ -92,7 +96,8 @@ class elem_in:public element, public gate_in{
 public:
     elem_in(const std::string &name, size_t width=1)
         :element(name),
-        gate_in(name+"in_1", width)
+        gate_in(name+"in_1", width),
+        nameable(name)
     {}
     virtual ~elem_in(){}
 

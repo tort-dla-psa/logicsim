@@ -5,7 +5,7 @@
 #include "gate_out.h"
 #include "nameable.h"
 
-class element:public nameable{
+class element:virtual public nameable{
 protected:
     std::vector<std::shared_ptr<gate_in>> ins;
     std::vector<std::shared_ptr<gate_out>> outs;
