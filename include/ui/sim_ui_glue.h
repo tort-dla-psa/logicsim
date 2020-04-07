@@ -6,13 +6,17 @@ struct elem_view;
 struct gate_view;
 struct gate_view_in;
 struct gate_view_out;
-struct gate_view{
+
+struct view{
+    std::string name;
+    size_t id;
+    long x, y, w, h;
+};
+struct gate_view:view{
     enum class direction{
         in,
         out
     }dir;
-    size_t id;
-    long x, y, w, h;
     std::shared_ptr<elem_view> parent;
 
     gate_view(){}
@@ -33,9 +37,7 @@ struct gate_view_out:gate_view{
         this->dir = gate_view::direction::out;
     }
 };
-struct elem_view{
-    long x, y, w, h;
-    size_t id;
+struct elem_view:view{
     enum class type{
         type_and,
         type_or,

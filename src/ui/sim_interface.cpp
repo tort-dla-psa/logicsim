@@ -1,4 +1,5 @@
 #include "sim_interface.h"
+#include "properties.h"
 #include <QInputDialog>
 
 #define DEBUG_VIEW
@@ -12,6 +13,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
     auto view = std::make_shared<elem_view>();
     auto id = elem->get_id();
 
+    view->name = elem->get_name();
     view->w = this->default_elem_width;
     view->h = this->default_elem_height;
     view->id = id;
@@ -36,8 +38,11 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
             gt->y = ins_y;
             if(view->t == elem_view::type::type_in){
                 gt->id = ((elem_in*)elem.get())->get_in_id();
+                auto cast = std::dynamic_pointer_cast<elem_in>(elem);
+                gt->name = cast->elem_in::get_name();
             }else{
                 gt->id = elem->get_in(i)->get_id();
+                gt->name = elem->get_in(i)->get_name();
             }
             gt->parent = view;
             ins_y += ins_offset;
@@ -56,8 +61,11 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
             gt->x = outs_x;
             if(view->t == elem_view::type::type_out){
                 gt->id = ((elem_out*)elem.get())->get_out_id();
+                auto cast  = std::dynamic_pointer_cast<elem_out>(elem);
+                gt->name = cast->elem_out::get_name();
             }else{
                 gt->id = elem->get_out(i)->get_id();
+                gt->name = elem->get_in(i)->get_name();
             }
             gt->parent = view;
             outs_y += outs_offset;
@@ -211,13 +219,17 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
     auto x = e->x();
     auto y = e->y();
 
-    if(current_id.has_value()){
+    if(current_id.has_value() && mode == mode::create){
         if(e->buttons() & Qt::LeftButton){
             glue.add_view(view);
+            mode = mode::select;
+            //current_id.reset();
+            //view = nullptr;
+        }else if(e->buttons() & Qt::RightButton){
             current_id.reset();
             view = nullptr;
-            update();
         }
+        update();
     }else{
         if(e->buttons() & Qt::LeftButton){
             auto items = glue.find_views(x, y);
@@ -283,7 +295,7 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
     this->mouse_pos.reset();
     this->mouse_pos_prev.reset();
     if(this->mode == mode::select && view){
-        view = nullptr;
+        //view = nullptr;
     }
     if(this->mode == mode::connect_gates && this->gate_view_1) {
         auto gates = glue.get_gates(x, y);
@@ -413,6 +425,13 @@ void sim_interface::paintEvent(QPaintEvent *e) {
         }
     }
     this->draw_widget::paintEvent(e);
+}
+
+void sim_interface::slot_propery_changed(const class prop* prop){
+    if(this->view && !prop->get_line_edit()->text().isEmpty()){
+        prop->set_view_value(this->view);
+        update();
+    }
 }
 
 void sim_interface::add_elem_and(){
