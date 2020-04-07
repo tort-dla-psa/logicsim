@@ -148,15 +148,15 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
 size_t sim_interface::vec_to_val(const std::vector<bool> &vec){
     size_t result = 0;
     for(size_t i=0; i<sizeof(size_t)*8 && i<vec.size(); i++){
-        result |= vec.at(i);
         result <<= 1;
+        result |= vec.at(i);
     }
     return result;
 }
 std::vector<bool> sim_interface::val_to_vec(const size_t &val){
     std::vector<bool> result;
     for(size_t i=0; i<sizeof(size_t)*8; i++){
-        bool tmp = (val >> (sizeof(size_t)*8-1))&1;
+        bool tmp = (val >> (sizeof(size_t)*8-i))&1;
         result.push_back(tmp);
     }
     return result;
@@ -229,8 +229,10 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
                         auto out_width = sim.get_out_width(view->id);
                         if(bits.size() > out_width){
                             //TODO:warning
+                            qWarning("value size is greater than gate width, truncating");
                             bits.erase(bits.begin()+out_width, bits.end());
                         }else if(bits.size() < out_width){
+                            qWarning("value size is lesser than gate width, padding");
                             bits.resize(out_width);
                         }
                         sim.set_out_value(this->view->id, bits);
