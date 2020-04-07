@@ -52,6 +52,8 @@ struct elem_view:view{
         dir_down,
         dir_left
     }dir = direction::dir_right;
+
+    long bit_width; //for type_in and type_out
     std::vector<std::shared_ptr<gate_view_in>> gates_in;
     std::vector<std::shared_ptr<gate_view_out>> gates_out;
 };

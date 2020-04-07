@@ -8,15 +8,18 @@ protected:
     size_t width;
     std::vector<bool> values;
 public:
-    gate(const std::string &name, size_t width)
+    gate(const std::string &name, const size_t &width)
         :nameable(name)
     {
-        this->width = width;
-        values.resize(width);
+        set_width(width);
     }
     virtual ~gate(){}
 
-    size_t get_width()const{
+    void set_width(const size_t &width){
+        this->width = width;
+        values.resize(width);
+    }
+    const size_t& get_width()const{
         return width;
     }
     bool get_value(size_t place)const{

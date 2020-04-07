@@ -32,17 +32,12 @@ public:
 
 	void set_getter(prop_func_get getter);
 	void set_setter(prop_func_set setter);
-	bool is_hidden()const;
 	QString name()const;
 signals:
 	void text_changed();
-public slots:
-	void hide();
-	void show();
 private slots:
 	void slot_text_changed(QString txt);
 private:
-	bool hidden;
 	std::optional<prop_func_get> getter;
 	std::optional<prop_func_set> setter;
 };

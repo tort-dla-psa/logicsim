@@ -55,6 +55,16 @@ properties::properties(QWidget* parent)
         view->h = le->text().toLong();
     }); 
 
+    prop = props.emplace_back(new prop_pair("bit_w", "bits", this));
+    prop->set_getter([](auto view){
+        return QString::number(view->bit_width);
+    }); 
+    prop->set_setter([prop](auto view){
+        auto le = prop->get_line_edit();
+        view->bit_width = le->text().toLong();
+    }); 
+    prop->hide();
+
     for(auto prop:props){
         this->scroll_layout->addWidget(prop);
         connect(prop, &prop_pair::text_changed, 
@@ -70,14 +80,6 @@ properties::~properties(){
     props.clear();
 }
 
-void properties::update_props(){
-    for(auto prop:props){
-        this->scroll_layout->removeWidget(prop);
-        if(!prop->is_hidden()){
-            this->scroll_layout->addWidget(prop);
-        }
-    }
-}
 void properties::update_props(const std::shared_ptr<elem_view> &view){
     for(auto prop:props){
         auto name = prop->name(); 
@@ -88,12 +90,24 @@ void properties::update_props(const std::shared_ptr<elem_view> &view){
             name == "h")
         {
             prop->show();
+        }else if(name == "bit_w"){
+            if(view->t == elem_view::type::type_in ||
+                view->t == elem_view::type::type_out)
+            {
+                prop->QWidget::setHidden(false);
+            }else{
+                prop->QWidget::setHidden(true);
+            }
         }
     }
 }
 
 void properties::slot_element_selected(std::shared_ptr<elem_view> view){
+    update_props(view);
     for(auto &prop:props){
+        if(prop->isHidden()){
+            continue;
+        }
         prop->set_line_edit_value(view);
     }
 }

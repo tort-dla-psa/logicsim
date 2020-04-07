@@ -94,6 +94,21 @@ public:
         }
         return el->get_out(place)->get_values();
     }
+    auto set_gate_width(size_t id, size_t width){
+        auto el = *find_by_id(id);
+        auto out_cast = std::dynamic_pointer_cast<gate_out>(el);
+        if(out_cast){
+            out_cast->set_width(width);
+            return;
+        }
+        auto in_cast = std::dynamic_pointer_cast<gate_in>(el);
+        if(in_cast){
+            in_cast->set_width(width);
+            return;
+        }
+        auto mes = "ID "+std::to_string(id)+" is not a gate, setting bit_width is illegal";
+        throw std::runtime_error(mes);
+    }
     void connect_gates(size_t id1, size_t id2){
         std::shared_ptr<gate> gt1, gt2;
         for(auto it = elements.begin(); it < elements.end(); it++){

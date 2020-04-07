@@ -125,14 +125,17 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     }
     pnt.end();
 
-    if(view->t == elem_view::type::type_in){
-        auto bit_val = sim.get_in_value(view->id, 0);
-        auto val = vec_to_val(bit_val);
-        draw_text(view->x, view->y, QString::number(val));
-    }else if(view->t == elem_view::type::type_out){
-        auto bit_val = sim.get_out_value(view->id, 0);
-        auto val = vec_to_val(bit_val);
-        draw_text(view->x, view->y, QString::number(val));
+    if(view->t == elem_view::type::type_in ||
+        view->t == elem_view::type::type_out)
+    {
+        auto bit_val = (view->t == elem_view::type::type_in)?
+            sim.get_in_value(view->id, 0):
+            sim.get_out_value(view->id, 0);
+        QString txt;
+        for(const auto &bit:bit_val){
+            txt.append(bit?"1":"0");
+        }
+        draw_text(view->x, view->y, txt);
     }
 
     draw_widget::draw_image(draw_x, draw_y, img);
@@ -397,6 +400,12 @@ void sim_interface::paintEvent(QPaintEvent *e) {
 void sim_interface::slot_propery_changed(const prop_pair* prop){
     if(this->view && !prop->get_line_edit()->text().isEmpty()){
         prop->set_view_value(this->view);
+        if((view->t == elem_view::type::type_in ||
+            view->t == elem_view::type::type_out) &&
+            prop->name() == "bit_w")
+        {
+            sim.set_gate_width(view->id, view->bit_width);
+        }
         update();
     }
 }

@@ -13,7 +13,6 @@ prop_pair::prop_pair(QString name, QString lbl_txt, QWidget *parent)
     this->layout->addWidget(this->le);
     connect(this->le, &QLineEdit::textEdited,
         this, &prop_pair::slot_text_changed);
-    hidden = false;
 }
 prop_pair::~prop_pair(){
     delete this->le;
@@ -53,13 +52,4 @@ void prop_pair::set_setter(prop_func_set setter){
 }
 void prop_pair::slot_text_changed(QString txt){
     emit text_changed();
-}
-void prop_pair::hide(){
-    hidden = true;
-}
-void prop_pair::show(){
-    hidden = false;
-}
-bool prop_pair::is_hidden()const{
-    return this->hidden;
 }
