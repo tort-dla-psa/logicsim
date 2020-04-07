@@ -1,55 +1,7 @@
 #include "properties.h"
+#include "prop_pair.h"
 #include "ui_properties.h"
 #include "sim_ui_glue.h"
-
-prop::prop(QString lbl_txt, QWidget *parent)
-    :QWidget(parent)
-{
-    this->layout = new QHBoxLayout(this);
-    this->lbl = new QLabel(this);
-    this->lbl->setText(lbl_txt);
-    this->le = new QLineEdit(this);
-    this->layout->addWidget(this->lbl);
-    this->layout->addWidget(this->le);
-    connect(this->le, &QLineEdit::textEdited,
-        this, &prop::slot_text_changed);
-}
-prop::~prop(){
-    delete this->le;
-    delete this->lbl;
-    delete this->layout;
-}
-void prop::set_view_value(std::shared_ptr<elem_view> view)const{
-    if(setter.has_value()){
-        (*setter)(view);
-    }
-}
-void prop::set_line_edit_value(std::shared_ptr<elem_view> view){
-    if(getter.has_value()){
-        this->le->setText((*getter)(view));
-    }
-}
-const QLabel* prop::get_label()const{
-    return this->lbl;
-}
-QLabel* prop::get_label(){
-    return this->lbl;
-}
-const QLineEdit* prop::get_line_edit()const{
-    return this->le;
-}
-QLineEdit* prop::get_line_edit(){
-    return this->le;
-}
-void prop::set_getter(prop_func_get getter){
-    this->getter.emplace(getter);
-}
-void prop::set_setter(prop_func_set setter){
-    this->setter.emplace(setter);
-}
-void prop::slot_text_changed(QString txt){
-    emit text_changed();
-}
 
 properties::properties(QWidget* parent)
     :QWidget(parent), ui(new Ui::properties)
@@ -58,7 +10,7 @@ properties::properties(QWidget* parent)
     this->scroll_layout = new QVBoxLayout(ui->scrollArea);
     ui->scrollArea->setLayout(this->scroll_layout);
 
-    auto prop = props.emplace_back(new class prop("Name", this));
+    auto prop = props.emplace_back(new prop_pair("name", "Name", this));
     prop->set_getter([](auto view){
         return QString::fromStdString(view->name);
     }); 
@@ -67,7 +19,7 @@ properties::properties(QWidget* parent)
         view->name = le->text().toStdString();
     }); 
 
-    prop = props.emplace_back(new class prop("X", this));
+    prop = props.emplace_back(new prop_pair("x", "X", this));
     prop->set_getter([](auto view){
         return QString::number(view->x);
     }); 
@@ -76,7 +28,7 @@ properties::properties(QWidget* parent)
         view->x = le->text().toLong();
     }); 
 
-    prop = props.emplace_back(new class prop("Y", this));
+    prop = props.emplace_back(new prop_pair("y", "Y", this));
     prop->set_getter([](auto view){
         return QString::number(view->y);
     }); 
@@ -85,7 +37,7 @@ properties::properties(QWidget* parent)
         view->y = le->text().toLong();
     }); 
 
-    prop = props.emplace_back(new class prop("W", this));
+    prop = props.emplace_back(new prop_pair("w", "W", this));
     prop->set_getter([](auto view){
         return QString::number(view->w);
     }); 
@@ -94,7 +46,7 @@ properties::properties(QWidget* parent)
         view->w = le->text().toLong();
     }); 
 
-    prop = props.emplace_back(new class prop("H", this));
+    prop = props.emplace_back(new prop_pair("h", "H", this));
     prop->set_getter([](auto view){
         return QString::number(view->h);
     }); 
@@ -105,7 +57,7 @@ properties::properties(QWidget* parent)
 
     for(auto prop:props){
         this->scroll_layout->addWidget(prop);
-        connect(prop, &prop::text_changed, 
+        connect(prop, &prop_pair::text_changed, 
             this, &properties::slot_prop_changed);
     }
 }
@@ -117,12 +69,35 @@ properties::~properties(){
     }
     props.clear();
 }
+
+void properties::update_props(){
+    for(auto prop:props){
+        this->scroll_layout->removeWidget(prop);
+        if(!prop->is_hidden()){
+            this->scroll_layout->addWidget(prop);
+        }
+    }
+}
+void properties::update_props(const std::shared_ptr<elem_view> &view){
+    for(auto prop:props){
+        auto name = prop->name(); 
+        if(name == "name" ||
+            name == "x" ||
+            name == "y" ||
+            name == "w" ||
+            name == "h")
+        {
+            prop->show();
+        }
+    }
+}
+
 void properties::slot_element_selected(std::shared_ptr<elem_view> view){
     for(auto &prop:props){
         prop->set_line_edit_value(view);
     }
 }
 void properties::slot_prop_changed(){
-    auto sender = (prop*)QObject::sender();
+    auto sender = (prop_pair*)QObject::sender();
     emit property_changed(sender);
 }

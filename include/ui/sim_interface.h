@@ -9,7 +9,7 @@
 #include "sim/element.h"
 #include "sim_ui_glue.h"
 
-class prop;
+class prop_pair;
 class sim_interface : public draw_widget {
 	Q_OBJECT
 
@@ -64,7 +64,7 @@ public slots:
     void add_elem_in();
     void add_elem_out();
 
-    void slot_propery_changed(const class prop* prop);
+    void slot_propery_changed(const prop_pair* prop);
 signals:
     void element_selected(std::shared_ptr<elem_view> view);
     void element_changed(std::shared_ptr<elem_view> view);

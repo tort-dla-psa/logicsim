@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "prop_pair.h"
 #include "ui_mainwindow.h"
 #include "sim/basic_elements.h"
 

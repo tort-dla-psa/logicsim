@@ -1,5 +1,6 @@
 #include "sim_interface.h"
 #include "properties.h"
+#include "prop_pair.h"
 #include <QInputDialog>
 
 std::shared_ptr<elem_view> sim_interface::elem_to_view(size_t id){
@@ -393,7 +394,7 @@ void sim_interface::paintEvent(QPaintEvent *e) {
     this->draw_widget::paintEvent(e);
 }
 
-void sim_interface::slot_propery_changed(const class prop* prop){
+void sim_interface::slot_propery_changed(const prop_pair* prop){
     if(this->view && !prop->get_line_edit()->text().isEmpty()){
         prop->set_view_value(this->view);
         update();
