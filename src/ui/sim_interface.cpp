@@ -214,40 +214,40 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
         }else if(e->buttons() & Qt::RightButton){
             current_id.reset();
             view = nullptr;
+            mode = mode::still;
         }
         update();
     }else{
         if(e->buttons() & Qt::LeftButton){
             auto items = glue.find_views(x, y);
-            if(!items.empty()){
-                this->view = items.front();
-                if(this->view->t == elem_view::type::type_out){
-                    int input = QInputDialog::getInt(this, "input value", "input value to pass");
-                    std::vector<bool> bits(sizeof(input)*8);
-                    int most_right_bit=0;
-                    for(size_t i=0; i<bits.size(); i++){
-                        bool bit = (input>>i)&1;
-                        if(bit){
-                            most_right_bit = i;
-                        }
-                        bits.at(i) = bit;
-                    }
-                    auto out_width = sim.get_out_width(view->id);
-                    if(most_right_bit > out_width){
-                        //TODO:warning
-                        bits.erase(bits.begin()+most_right_bit, bits.end());
-                    }else if(most_right_bit < out_width){
-                        bits.resize(out_width);
-                    }
-                    sim.set_out_value(this->view->id, bits);
-                }else{
-                    this->mode = mode::select;
-                }
-            }
             auto gates = glue.get_gates(x, y);
-            if(!gates.empty()){
+            if(!items.empty()){
+                if(this->view == items.front() && mode == mode::select){
+                    if(this->view->t == elem_view::type::type_out){
+                        int input = QInputDialog::getInt(this, "input devimal value", "input decimal value to pass");
+                        auto bits = val_to_vec(input);
+                        auto out_width = sim.get_out_width(view->id);
+                        if(bits.size() > out_width){
+                            //TODO:warning
+                            bits.erase(bits.begin()+out_width, bits.end());
+                        }else if(bits.size() < out_width){
+                            bits.resize(out_width);
+                        }
+                        sim.set_out_value(this->view->id, bits);
+                        return;
+                    }
+                }else{
+                    this->view = items.front();
+                    this->mode = mode::select;
+                    return;
+                }
+            }else if(!gates.empty()){
                 this->mode = mode::connect_gates;
                 this->gate_view_1 = gates.front();
+            }else{
+                mode = mode::still;
+                this->view = nullptr;
+                this->current_id.reset();
             }
         }
     }

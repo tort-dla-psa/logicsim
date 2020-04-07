@@ -32,6 +32,7 @@ class sim_interface : public draw_widget {
         default_gate_h=10;
 
     enum class mode{
+        still,
         create,
         select,
         connect_gates
