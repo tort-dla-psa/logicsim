@@ -2,9 +2,6 @@
 #include "properties.h"
 #include <QInputDialog>
 
-#define DEBUG_VIEW
-#define DEBUG_SIM_GLUE
-
 std::shared_ptr<elem_view> sim_interface::elem_to_view(size_t id){
     const auto &el = sim.get_element(id);
     return elem_to_view(el);
@@ -146,17 +143,6 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
                 gt->y+gt->parent->y);
         }
     }
-
-#ifdef DEBUG_GATES
-    for(auto &gate:gates_out){
-        QString txt = QString::number(gate.x)+" "+QString::number(gate.y);
-        draw_text(draw_x+gate.x, draw_y+gate.y, txt);
-    }
-    for(auto &gate:gates_in){
-        QString txt = QString::number(gate.x)+" "+QString::number(gate.y);
-        draw_text(draw_x+gate.x, draw_y+gate.y, txt);
-    }
-#endif
 }
 
 size_t sim_interface::vec_to_val(const std::vector<bool> &vec){
@@ -265,28 +251,6 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             }
         }
     }
-#ifdef DEBUG_SIM_GLUE
-    {
-        qDebug()<<"views:";
-        const auto &all_views = glue.access_views();
-        for(const auto &view:all_views){
-            qDebug()<<"view id:"<<view->id
-                <<"\tx:"<<view->x <<"\ty:"<<view->y
-                <<"\tw:"<<view->w <<"\th:"<<view->h;
-            for(const auto &gt:view->gates_in){
-                qDebug()<<"\tgt_in id:"<<gt->id
-                    <<"\tx:"<<gt->x <<"\ty:"<<gt->y
-                    <<"\tw:"<<gt->w <<"\th:"<<gt->h;
-            }
-            for(const auto &gt:view->gates_out){
-                qDebug()<<"\tgt_out id:"<<gt->id
-                    <<"\tx:"<<gt->x <<"\ty:"<<gt->y
-                    <<"\tw:"<<gt->w <<"\th:"<<gt->h;
-            }
-        }
-        qDebug()<<"";
-    }
-#endif
 }
 
 void sim_interface::mouseReleaseEvent(QMouseEvent *e){
