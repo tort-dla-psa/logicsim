@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QWidget>
 #include <QDebug>
+#include <QPoint>
 #include <optional>
 #include <vector>
 #include "draw_widget.h"
@@ -39,6 +40,7 @@ class sim_interface : public draw_widget {
     }mode;
 
     std::vector<int> pressed_keys;
+    QPoint cm_pos;
 
     std::shared_ptr<elem_view> elem_to_view(const std::shared_ptr<element> &elem);
     std::shared_ptr<elem_view> elem_to_view(size_t id);
@@ -65,6 +67,8 @@ public slots:
     void add_elem_out();
 
     void slot_propery_changed(const prop_pair* prop);
+    void delete_item_cm();
+    void showContextMenu(const QPoint &p);
 signals:
     void element_selected(std::shared_ptr<elem_view> view);
     void element_changed(std::shared_ptr<elem_view> view);

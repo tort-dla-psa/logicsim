@@ -112,6 +112,19 @@ public:
         }
     }
 
+    void del_view(const size_t &id){
+        auto it = std::find_if(finder.begin(), finder.end(),
+            [&id](const auto &v){
+                return v->id == id;
+            });
+        if(it != finder.end()){
+            finder.erase(it);
+        }else{
+            auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
+            throw std::runtime_error(mes);
+        }
+    }
+
     std::shared_ptr<gate_view> get_gate(const std::shared_ptr<elem_view>& view, int x, int y){
         x -= view->x;
         y -= view->y;

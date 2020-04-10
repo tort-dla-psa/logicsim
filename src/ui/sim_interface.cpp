@@ -2,6 +2,8 @@
 #include "properties.h"
 #include "prop_pair.h"
 #include <QInputDialog>
+#include <QMenu>
+#include <QAction>
 
 std::shared_ptr<elem_view> sim_interface::elem_to_view(size_t id){
     const auto &el = sim.get_element(id);
@@ -170,10 +172,35 @@ sim_interface::sim_interface(QWidget* parent)
     :draw_widget(parent),
     glue(sim_ui_glue::get_instance())
 {
+    this->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, &QWidget::customContextMenuRequested,
+            this, &sim_interface::showContextMenu);
     setFocus();
     QWidget::setMouseTracking(true);
 }
 sim_interface::~sim_interface(){}
+
+void sim_interface::delete_item_cm(){
+    auto items = glue.find_views(cm_pos.x(), cm_pos.y());
+    glue.del_view(items.front()->id);
+    sim.delete_element(items.front()->id);
+    update();
+}
+
+void sim_interface::showContextMenu(const QPoint &p){
+    QMenu contextMenu(tr("Menu"), this);
+    this->cm_pos = p;
+
+    auto items = glue.find_views(p.x(), p.y());
+    QAction action1("Delete item", this);
+    action1.setDisabled(items.empty());
+
+    action1.
+    connect(&action1, SIGNAL(triggered()),
+        this, SLOT(delete_item_cm()));
+    contextMenu.addAction(&action1);
+    contextMenu.exec(mapToGlobal(p));
+}
 
 void sim_interface::mouseMoveEvent(QMouseEvent *e){
     setFocus();
