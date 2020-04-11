@@ -474,11 +474,29 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
             prop->name() == "bit_w")
         {
             sim.set_gate_width(view->id, view->bit_width);
-            for(auto &gt_out:view->gates_out){
-                gt_out->bit_width = view->bit_width;
-                for(auto &cn:gt_out->conn){
+            auto func = [this](std::shared_ptr<gate_view> gt){
+                gt->bit_width = view->bit_width;
+                for(auto &cn:gt->conn){
+                    bool prev = cn->valid;
                     cn->check_valid();
+                    bool now = cn->valid;
+                    if(!prev && now){
+                        auto gt2 = cn->gate_in == gt?
+                            std::static_pointer_cast<gate_view>(cn->gate_out):
+                            std::static_pointer_cast<gate_view>(cn->gate_in);
+                        try{
+                            sim.connect_gates(gt->id, gt2->id);
+                            this->try_tick();
+                        }catch(std::runtime_error &e){
+                        }
+                    }
                 }
+            };
+            for(auto &gt_out:view->gates_out){
+                func(gt_out);
+            }
+            for(auto &gt_in:view->gates_in){
+                func(gt_in);
             }
         }
         update();
