@@ -44,7 +44,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
             ins_y += ins_offset;
             if(view->t == elem_view::type::type_in){
                 gt->id = ((elem_in*)elem.get())->get_in_id();
-                auto cast = std::dynamic_pointer_cast<elem_in>(elem);
+                auto cast = std::static_pointer_cast<elem_in>(elem);
                 gt->name = cast->elem_in::get_name();
             }else{
                 gt->id = elem->get_in(i)->get_id();
@@ -69,7 +69,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
             outs_y += outs_offset;
             if(view->t == elem_view::type::type_out){
                 gt->id = ((elem_out*)elem.get())->get_out_id();
-                auto cast  = std::dynamic_pointer_cast<elem_out>(elem);
+                auto cast  = std::static_pointer_cast<elem_out>(elem);
                 gt->name = cast->elem_out::get_name();
             }else{
                 gt->id = elem->get_out(i)->get_id();
@@ -305,6 +305,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             mode = mode::select;
             //current_id.reset();
             //view = nullptr;
+            emit element_selected(view);
         }else if(e->buttons() & Qt::RightButton){
             current_id.reset();
             view = nullptr;
@@ -334,6 +335,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
                 }else{
                     this->view = items.front();
                     this->mode = mode::select;
+                    emit element_selected(view);
                     return;
                 }
             }else if(!gates.empty()){
@@ -378,21 +380,16 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
 }
 
 void sim_interface::keyPressEvent(QKeyEvent* e){
+    auto beg = pressed_keys.cbegin();
+    auto end = pressed_keys.cend();
     pressed_keys.emplace_back(e->key());
-    bool ctrl = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Control) != pressed_keys.end();
-    bool left = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Left) != pressed_keys.end();
-    bool right = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Right) != pressed_keys.end();
-    bool up = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Up) != pressed_keys.end();
-    bool down = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Down) != pressed_keys.end();
-    bool plus = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Equal) != pressed_keys.end();
-    bool minus = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Minus) != pressed_keys.end();
+    bool ctrl = std::find(beg, end, Qt::Key_Control) != end;
+    bool left = std::find(beg, end, Qt::Key_Left) != end;
+    bool right = std::find(beg, end, Qt::Key_Right) != end;
+    bool up = std::find(beg, end, Qt::Key_Up) != end;
+    bool down = std::find(beg, end, Qt::Key_Down) != end;
+    bool plus = std::find(beg, end, Qt::Key_Equal) != end;
+    bool minus = std::find(beg, end, Qt::Key_Minus) != end;
     if(current_id.has_value()){
         if(ctrl && (left || right)){
             int cast = (int)view->dir;
@@ -433,11 +430,7 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
 }
 
 void sim_interface::keyReleaseEvent(QKeyEvent* e){
-    auto it = std::find(pressed_keys.begin(), pressed_keys.end(),
-        e->key());
-    if(it != pressed_keys.end()){
-        pressed_keys.erase(it);
-    }
+    std::remove(pressed_keys.begin(), pressed_keys.end(), e->key());
 }
 
 void sim_interface::paintEvent(QPaintEvent *e) {
@@ -454,7 +447,6 @@ void sim_interface::paintEvent(QPaintEvent *e) {
     if(mode == mode::create){
         draw_elem_view(pnt, this->view);
     }
-    //to draw created or selected element
     if(mouse_pos_prev.has_value() && mouse_pos.has_value()){
         if(mode == mode::connect_gates){
             draw_line(mouse_pos->x(), mouse_pos->y(),
@@ -472,11 +464,29 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
             prop->name() == "bit_w")
         {
             sim.set_gate_width(view->id, view->bit_width);
-            for(auto &gt_out:view->gates_out){
-                gt_out->bit_width = view->bit_width;
-                for(auto &cn:gt_out->conn){
+            auto func = [this](std::shared_ptr<gate_view> gt){
+                gt->bit_width = view->bit_width;
+                for(auto &cn:gt->conn){
+                    bool prev = cn->valid;
                     cn->check_valid();
+                    bool now = cn->valid;
+                    if(!prev && now){
+                        auto gt2 = cn->gate_in == gt?
+                            std::static_pointer_cast<gate_view>(cn->gate_out):
+                            std::static_pointer_cast<gate_view>(cn->gate_in);
+                        try{
+                            sim.connect_gates(gt->id, gt2->id);
+                            this->try_tick();
+                        }catch(std::runtime_error &e){
+                        }
+                    }
                 }
+            };
+            for(auto &gt_out:view->gates_out){
+                func(gt_out);
+            }
+            for(auto &gt_in:view->gates_in){
+                func(gt_in);
             }
         }
         update();
@@ -484,27 +494,17 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
 }
 
 void sim_interface::add_elem_and(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_and>("add");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_and>("and");
 }
 void sim_interface::add_elem_or(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_or>("or");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_or>("or");
 }
 void sim_interface::add_elem_not(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_not>("not");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_not>("not");
 }
 void sim_interface::add_elem_in(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_in>("in");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_in>("in");
 }
 void sim_interface::add_elem_out(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_out>("out");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_out>("out");
 }

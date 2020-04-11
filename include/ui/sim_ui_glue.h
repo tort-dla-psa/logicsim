@@ -20,20 +20,17 @@ struct gate_view:view{
     }dir;
     size_t bit_width;
     std::shared_ptr<elem_view> parent;
+    std::vector<std::shared_ptr<gate_connection>> conn;
 
     gate_view(){}
     virtual ~gate_view(){}
 };
 struct gate_view_in:gate_view{
-    std::vector<std::shared_ptr<gate_connection>> conn;
-
     gate_view_in():gate_view(){
         this->dir = gate_view::direction::in;
     }
 };
 struct gate_view_out:gate_view{
-    std::vector<std::shared_ptr<gate_connection>> conn;
-
     gate_view_out():gate_view(){
         this->dir = gate_view::direction::out;
     }
@@ -153,8 +150,9 @@ public:
         for(auto &gt_in:el->gates_in){
             for(auto &gt_in_conn:gt_in->conn){
                 auto out = gt_in_conn->gate_out;
-                auto conn = std::find(out->conn.begin(), out->conn.end(), gt_in_conn);
-                out->conn.erase(conn);
+                //std::remove(out->conn.begin(), out->conn.end(), gt_in_conn);
+                auto it = std::find(out->conn.begin(), out->conn.end(), gt_in_conn);
+                out->conn.erase(it);
             }
             gt_in->conn.clear();
         }
@@ -162,8 +160,9 @@ public:
         for(auto &gt_out:el->gates_out){
             for(auto &gt_out_conn:gt_out->conn){
                 auto in = gt_out_conn->gate_in;
-                auto conn = std::find(in->conn.begin(), in->conn.end(), gt_out_conn);
-                in->conn.erase(conn);
+                //std::remove(in->conn.begin(), in->conn.end(), gt_out_conn);
+                auto it = std::find(in->conn.begin(), in->conn.end(), gt_out_conn);
+                in->conn.erase(it);
             }
             gt_out->conn.clear();
         }
