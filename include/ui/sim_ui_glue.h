@@ -6,6 +6,7 @@ struct elem_view;
 struct gate_view;
 struct gate_view_in;
 struct gate_view_out;
+struct gate_connection;
 
 struct view{
     std::string name;
@@ -17,24 +18,33 @@ struct gate_view:view{
         in,
         out
     }dir;
+    size_t bit_width;
     std::shared_ptr<elem_view> parent;
 
     gate_view(){}
     virtual ~gate_view(){}
 };
-
 struct gate_view_in:gate_view{
-    std::vector<std::shared_ptr<gate_view_out>> gates_out;
+    std::vector<std::shared_ptr<gate_connection>> conn;
 
     gate_view_in():gate_view(){
         this->dir = gate_view::direction::in;
     }
 };
 struct gate_view_out:gate_view{
-    std::vector<std::shared_ptr<gate_view_in>> gates_in;
+    std::vector<std::shared_ptr<gate_connection>> conn;
 
     gate_view_out():gate_view(){
         this->dir = gate_view::direction::out;
+    }
+};
+struct gate_connection{
+    std::shared_ptr<gate_view_out> gate_out;
+    std::shared_ptr<gate_view_in> gate_in;
+    bool valid;
+
+    void check_valid(){
+        valid = (gate_out->bit_width == gate_in->bit_width);
     }
 };
 struct elem_view:view{

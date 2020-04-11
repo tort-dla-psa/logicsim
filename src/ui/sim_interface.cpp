@@ -5,6 +5,7 @@
 #include <QInputDialog>
 #include <QMenu>
 #include <QAction>
+#include <QPen>
 
 std::shared_ptr<elem_view> sim_interface::elem_to_view(size_t id){
     const auto &el = sim.get_element(id);
@@ -45,6 +46,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
                 gt->id = elem->get_in(i)->get_id();
                 gt->name = elem->get_in(i)->get_name();
             }
+            gt->bit_width = sim.get_gate_width(gt->id);
             gt->parent = view;
             ins_y += ins_offset;
             view->gates_in.emplace_back(gt);
@@ -68,6 +70,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
                 gt->id = elem->get_out(i)->get_id();
                 gt->name = elem->get_in(i)->get_name();
             }
+            gt->bit_width = sim.get_gate_width(gt->id);
             gt->parent = view;
             outs_y += outs_offset;
             view->gates_out.emplace_back(gt);
@@ -142,8 +145,16 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     }
 
     draw_widget::draw_image(draw_x, draw_y, img);
+    QPen pen_valid(Qt::black);
+    QPen pen_invalid(Qt::darkRed);
     for(auto &gate:gates_out){
-        for(auto &gt:gate->gates_in){
+        for(auto &cn:gate->conn){
+            auto &gt = cn->gate_in;
+            if(cn->valid){
+                draw_widget::set_pen(pen_valid);
+            }else{
+                draw_widget::set_pen(pen_invalid);
+            }
             draw_widget::draw_line(gate->x+gate->parent->x,
                 gate->y+gate->parent->y,
                 gt->x+gt->parent->x,
@@ -278,27 +289,34 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
     }
     if(this->mode == mode::connect_gates && this->gate_view_1) {
         auto gates = glue.get_gates(x, y);
-        if(!gates.empty()){
-            this->mode = mode::connect_gates;
-            this->gate_view_2 = gates.front();
+        if(gates.empty()){
+            return;
+        }
+        this->gate_view_2 = gates.front();
+        bool valid = true;
+        try{
             sim.connect_gates(gate_view_1->id, gate_view_2->id);
-            auto cast_in = std::dynamic_pointer_cast<gate_view_in>(this->gate_view_1);
-            auto cast_out = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_1);
-            if(cast_in){
-                auto cast_out_2 = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_2);
-                if(cast_out_2){
-                    cast_out_2->gates_in.emplace_back(cast_in);
-                }else{ //TODO:throw dialog
-                }
-            }else if(cast_out){
-                auto cast_in_2 = std::dynamic_pointer_cast<gate_view_in>(this->gate_view_2);
-                if(cast_in_2){
-                    cast_out->gates_in.emplace_back(cast_in_2);
-                }else{ //TODO:throw dialog
-                }
+        }catch(std::runtime_error &e){
+            valid = false;
+            qWarning("wrong connection");
+        }
+        auto cast_in = std::dynamic_pointer_cast<gate_view_in>(this->gate_view_1);
+        auto cast_out = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_1);
+        if(cast_in){
+            auto cast_out_2 = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_2);
+            if(cast_out_2){
+                cast_out_2->conn.emplace_back(new gate_connection{cast_out_2, cast_in, valid});
+            }else{ //TODO:throw dialog
+            }
+        }else if(cast_out){
+            auto cast_in_2 = std::dynamic_pointer_cast<gate_view_in>(this->gate_view_2);
+            if(cast_in_2){
+                cast_out->conn.emplace_back(new gate_connection{cast_out, cast_in_2, valid});
+            }else{ //TODO:throw dialog
             }
         }
         this->gate_view_1 = this->gate_view_2 = nullptr;
+        this->mode = mode::still;
     }
 }
 
@@ -414,6 +432,12 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
             prop->name() == "bit_w")
         {
             sim.set_gate_width(view->id, view->bit_width);
+            for(auto &gt_out:view->gates_out){
+                gt_out->bit_width = view->bit_width;
+                for(auto &cn:gt_out->conn){
+                    cn->check_valid();
+                }
+            }
         }
         update();
     }
