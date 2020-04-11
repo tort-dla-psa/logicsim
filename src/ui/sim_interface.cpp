@@ -32,12 +32,15 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
         long ins_offset = view->h/elem->get_ins();
         long ins_x = 0;
         long ins_y = ins_offset/2;
+        auto gt_ = std::make_shared<gate_view_in>();
+        gt_->w = this->default_gate_w;
+        gt_->h = this->default_gate_h;
+        gt_->x = ins_x;
+        gt_->parent = view;
         for(size_t i=0; i<elem->get_ins(); i++){
-            auto gt = std::make_shared<gate_view_in>();
-            gt->w = this->default_gate_w;
-            gt->h = this->default_gate_h;
-            gt->x = ins_x;
+            auto gt = std::make_shared<gate_view_in>(*gt_);
             gt->y = ins_y;
+            ins_y += ins_offset;
             if(view->t == elem_view::type::type_in){
                 gt->id = ((elem_in*)elem.get())->get_in_id();
                 auto cast = std::dynamic_pointer_cast<elem_in>(elem);
@@ -47,8 +50,6 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
                 gt->name = elem->get_in(i)->get_name();
             }
             gt->bit_width = sim.get_gate_width(gt->id);
-            gt->parent = view;
-            ins_y += ins_offset;
             view->gates_in.emplace_back(gt);
         }
     }
@@ -56,12 +57,15 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
         long outs_offset = view->h/elem->get_outs();
         long outs_x = view->w;
         long outs_y = outs_offset/2;
+        auto gt_ = std::make_shared<gate_view_out>();
+        gt_->w = this->default_gate_w;
+        gt_->h = this->default_gate_h;
+        gt_->x = outs_x;
+        gt_->parent = view;
         for(size_t i=0; i<elem->get_outs(); i++){
-            auto gt = std::make_shared<gate_view_out>();
-            gt->w = this->default_gate_w;
-            gt->h = this->default_gate_h;
+            auto gt = std::make_shared<gate_view_out>(*gt_);
             gt->y = outs_y;
-            gt->x = outs_x;
+            outs_y += outs_offset;
             if(view->t == elem_view::type::type_out){
                 gt->id = ((elem_out*)elem.get())->get_out_id();
                 auto cast  = std::dynamic_pointer_cast<elem_out>(elem);
@@ -71,8 +75,6 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
                 gt->name = elem->get_in(i)->get_name();
             }
             gt->bit_width = sim.get_gate_width(gt->id);
-            gt->parent = view;
-            outs_y += outs_offset;
             view->gates_out.emplace_back(gt);
         }
     }
