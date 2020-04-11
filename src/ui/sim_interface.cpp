@@ -146,7 +146,7 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
 
     draw_widget::draw_image(draw_x, draw_y, img);
     QPen pen_valid(Qt::black);
-    QPen pen_invalid(Qt::darkRed);
+    QPen pen_invalid(Qt::red);
     for(auto &gate:gates_out){
         for(auto &cn:gate->conn){
             auto &gt = cn->gate_in;
@@ -161,6 +161,7 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
                 gt->y+gt->parent->y);
         }
     }
+    draw_widget::set_pen(pen_valid);
 }
 
 sim_interface::sim_interface(QWidget* parent)
@@ -305,13 +306,17 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
         if(cast_in){
             auto cast_out_2 = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_2);
             if(cast_out_2){
-                cast_out_2->conn.emplace_back(new gate_connection{cast_out_2, cast_in, valid});
+                auto conn = std::make_shared<gate_connection>(cast_out_2, cast_in, valid);
+                cast_out_2->conn.emplace_back(conn);
+                cast_in->conn.emplace_back(conn);
             }else{ //TODO:throw dialog
             }
         }else if(cast_out){
             auto cast_in_2 = std::dynamic_pointer_cast<gate_view_in>(this->gate_view_2);
             if(cast_in_2){
-                cast_out->conn.emplace_back(new gate_connection{cast_out, cast_in_2, valid});
+                auto conn = std::make_shared<gate_connection>(cast_out, cast_in_2, valid);
+                cast_out->conn.emplace_back(conn);
+                cast_in_2->conn.emplace_back(conn);
             }else{ //TODO:throw dialog
             }
         }
