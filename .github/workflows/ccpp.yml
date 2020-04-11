@@ -16,8 +16,8 @@ jobs:
     - name: install deps
       run: sudo apt install qt5-default
     - name: cmake
-      working-directory: /home/runner/work/logicsim/
+      working-directory: /home/runner/work/logicsim/logicsim/
       run: sudo cmake .
     - name: make
-      working-directory: /home/runner/work/logicsim/
+      working-directory: /home/runner/work/logicsim/logicsim/
       run: sudo make -j4
