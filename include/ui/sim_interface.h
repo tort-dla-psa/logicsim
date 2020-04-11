@@ -49,6 +49,12 @@ class sim_interface : public draw_widget {
 
     size_t vec_to_val(const std::vector<bool> &vec);
     std::vector<bool> val_to_vec(const size_t &vec);
+    void draw_and(QPainter &p, int x, int y, int w, int h);
+    void draw_or(QPainter &p, int x, int y, int w, int h);
+    void draw_not(QPainter &p, int x, int y, int w, int h);
+    void draw_custom(QPainter &p, int x, int y, int w, int h);
+    void draw_out(QPainter &p, int x, int y, int w, int h);
+    void draw_in(QPainter &p, int x, int y, int w, int h);
 public:
 	sim_interface(QWidget *parent = nullptr);
     virtual ~sim_interface();

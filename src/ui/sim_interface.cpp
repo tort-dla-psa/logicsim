@@ -107,6 +107,45 @@ void sim_interface::rotate_view(std::shared_ptr<elem_view> &view){
     }
 }
 
+void sim_interface::draw_and(QPainter &p, int x, int y, int w, int h){
+    QRectF rect(x, y, w, h); 
+    QPainterPath path;
+    path.moveTo(x, y);
+    path.lineTo(x, y+h);
+    path.lineTo(x+w/2, y+h);
+    path.arcMoveTo(rect, -90);
+    path.arcTo(rect, -90, 180);
+    path.lineTo(x, y);
+    p.drawPath(path);
+}
+void sim_interface::draw_or(QPainter &p, int x, int y, int w, int h){
+    QPainterPath path;
+    path.moveTo(x, y);
+    path.quadTo(x+w/2, y+h/2, x, y+h);
+    path.quadTo(x+w/4*3, y+h, x+w, y+h/2);
+    path.quadTo(x+w/4*3, y, x, y);
+    p.drawPath(path);
+}
+void sim_interface::draw_not(QPainter &p, int x, int y, int w, int h){
+    QRectF rect(x, y, w, h); 
+    QPainterPath path;
+    path.moveTo(x, y);
+    path.lineTo(x, y+h);
+    path.lineTo(x+w, y+h/2);
+    path.lineTo(x, y);
+    p.drawPath(path);
+}
+void sim_interface::draw_custom(QPainter &p, int x, int y, int w, int h){
+    QRectF rect(x, y, w, h); 
+    p.drawRect(rect);
+}
+void sim_interface::draw_out(QPainter &p, int x, int y, int w, int h){
+    QRectF rect(x, y, w, h); 
+}
+void sim_interface::draw_in(QPainter &p, int x, int y, int w, int h){
+    QRectF rect(x, y, w, h); 
+}
+
 void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view){
     long draw_x = (view->x-cam.x)*cam.zoom;
     long draw_y = (view->y-cam.y)*cam.zoom;
@@ -125,9 +164,18 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         pnt.drawRect(1,1,img.width()-2, img.height()-2);
         pnt.setPen(Qt::SolidLine);
     }
-
-    pnt.drawRect(0+this->default_gate_w/2,
-        0+this->default_gate_h/2, draw_w, draw_h);
+    if(view->t == elem_view::type::type_and){
+        draw_and(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
+    }else if(view->t == elem_view::type::type_or){
+        draw_or(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
+    }else if(view->t == elem_view::type::type_not){
+        draw_not(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
+    }else if(view->t == elem_view::type::type_custom){
+        draw_custom(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
+    }else{
+        QRectF rect(this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
+        pnt.drawRect(rect);
+    }
 
     auto &gates_in = view->gates_in;
     for(auto &gate:gates_in){
