@@ -504,27 +504,17 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
 }
 
 void sim_interface::add_elem_and(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_and>("add");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_and>("and");
 }
 void sim_interface::add_elem_or(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_or>("or");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_or>("or");
 }
 void sim_interface::add_elem_not(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_not>("not");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_not>("not");
 }
 void sim_interface::add_elem_in(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_in>("in");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_in>("in");
 }
 void sim_interface::add_elem_out(){
-    this->mode = mode::create;
-    this->current_id = sim.create_element<elem_out>("out");
-    this->view = elem_to_view(this->current_id.value());
+    create_elem<elem_out>("out");
 }

@@ -56,6 +56,13 @@ class sim_interface : public draw_widget {
     void draw_out(QPainter &p, int x, int y, int w, int h);
     void draw_in(QPainter &p, int x, int y, int w, int h);
     void try_tick();
+
+    template<class Elem>
+    void create_elem(const std::string &name){
+        this->mode = mode::create;
+        this->current_id = sim.create_element<Elem>(name);
+        this->view = elem_to_view(this->current_id.value());
+    }
 public:
 	sim_interface(QWidget *parent = nullptr);
     virtual ~sim_interface();
