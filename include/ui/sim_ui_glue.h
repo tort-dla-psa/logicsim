@@ -43,6 +43,13 @@ struct gate_connection{
     std::shared_ptr<gate_view_in> gate_in;
     bool valid;
 
+    gate_connection(std::shared_ptr<gate_view_out> gate_out,
+        std::shared_ptr<gate_view_in> gate_in,
+        bool valid)
+        :gate_out(gate_out),
+        gate_in(gate_in),
+        valid(valid)
+    {}
     void check_valid(){
         valid = (gate_out->bit_width == gate_in->bit_width);
     }
@@ -78,7 +85,30 @@ public:
         return *_singleton;
     }
 
-    std::vector<std::shared_ptr<elem_view>> find_views(long x, long y){
+    auto find_view(const size_t &id){
+        auto it = std::find_if(finder.begin(), finder.end(),
+            [&id](const auto &v){
+                return v->id == id;
+            });
+        if(it != finder.end()){
+            return it;
+        }
+        auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
+        throw std::runtime_error(mes);
+    }
+    auto find_view(const size_t &id)const{
+        auto it = std::find_if(finder.begin(), finder.end(),
+            [&id](const auto &v){
+                return v->id == id;
+            });
+        if(it != finder.end()){
+            return it;
+        }
+        auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
+        throw std::runtime_error(mes);
+    }
+
+    auto find_views(const long &x, const long &y)const{
         std::vector<std::shared_ptr<elem_view>> ids;
         for(auto &view:finder){
             if(view->x+view->w > x &&
@@ -92,7 +122,9 @@ public:
         return ids;
     }
 
-    std::vector<std::shared_ptr<elem_view>> find_views(long x, long y, long w, long h){
+    auto find_views(const long &x, const long &y,
+        const long &w, const long &h)const
+    {
         std::vector<std::shared_ptr<elem_view>> ids;
         for(auto &view:finder){
             if(view->x >= x &&
@@ -106,36 +138,45 @@ public:
         return ids;
     }
 
-    const std::vector<std::shared_ptr<elem_view>>& access_views()const{
+    const auto& access_views()const{
         return finder;
     }
 
     void add_view(const std::shared_ptr<elem_view> &view){
-        auto it = std::find_if(finder.begin(), finder.end(),
-            [&view](const auto &v){
-                return v->id == view->id;
-            });
-        if(it != finder.end()){
+        try{
+            auto it = find_view(view->id);
             *it = view;
-        }else{
+        }catch(std::runtime_error &e){ //not found
             finder.emplace_back(view);
         }
     }
 
     void del_view(const size_t &id){
-        auto it = std::find_if(finder.begin(), finder.end(),
-            [&id](const auto &v){
-                return v->id == id;
-            });
-        if(it != finder.end()){
-            finder.erase(it);
-        }else{
-            auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
-            throw std::runtime_error(mes);
+        auto it = find_view(id);
+        auto el = *it;
+        for(auto &gt_in:el->gates_in){
+            for(auto &gt_in_conn:gt_in->conn){
+                auto out = gt_in_conn->gate_out;
+                auto conn = std::find(out->conn.begin(), out->conn.end(), gt_in_conn);
+                out->conn.erase(conn);
+            }
+            gt_in->conn.clear();
         }
+        el->gates_in.clear();
+        for(auto &gt_out:el->gates_out){
+            for(auto &gt_out_conn:gt_out->conn){
+                auto in = gt_out_conn->gate_in;
+                auto conn = std::find(in->conn.begin(), in->conn.end(), gt_out_conn);
+                in->conn.erase(conn);
+            }
+            gt_out->conn.clear();
+        }
+        el->gates_out.clear();
+        finder.erase(it);
     }
 
-    std::shared_ptr<gate_view> get_gate(const std::shared_ptr<elem_view>& view, int x, int y){
+    auto get_gate(const std::shared_ptr<elem_view>& view, int x, int y){
+        std::shared_ptr<gate_view> gt;
         x -= view->x;
         y -= view->y;
         auto &gates_in = view->gates_in;
@@ -146,7 +187,8 @@ public:
                 gate->x+gate->w/2 > x &&
                 gate->y+gate->h/2 > y)
             {
-                return gate;
+                gt = gate;
+                return gt;
             } 
         }
         for(auto &gate:gates_out){
@@ -155,13 +197,14 @@ public:
                 gate->x+gate->w/2 > x &&
                 gate->y+gate->h/2 > y)
             {
-                return gate;
+                gt = gate;
+                return gt;
             } 
         }
-        return nullptr;
+        return gt; //nullptr
     }
 
-    std::vector<std::shared_ptr<gate_view>> get_gates(int x, int y){
+    auto get_gates(int x, int y)const{
         std::vector<std::shared_ptr<gate_view>> gates;
         for(auto &view:this->finder){
             int x_ =  x - view->x;
