@@ -20,20 +20,17 @@ struct gate_view:view{
     }dir;
     size_t bit_width;
     std::shared_ptr<elem_view> parent;
+    std::vector<std::shared_ptr<gate_connection>> conn;
 
     gate_view(){}
     virtual ~gate_view(){}
 };
 struct gate_view_in:gate_view{
-    std::vector<std::shared_ptr<gate_connection>> conn;
-
     gate_view_in():gate_view(){
         this->dir = gate_view::direction::in;
     }
 };
 struct gate_view_out:gate_view{
-    std::vector<std::shared_ptr<gate_connection>> conn;
-
     gate_view_out():gate_view(){
         this->dir = gate_view::direction::out;
     }
