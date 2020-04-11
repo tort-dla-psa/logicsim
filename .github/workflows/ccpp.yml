@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install deps
-      run: apt install qt5-default
+      run: sudo apt install qt5-default
     - name: cmake
       run: mkdir build && cd build && cmake ..
     - name: make
