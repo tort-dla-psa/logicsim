@@ -115,6 +115,15 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         QImage::Format_ARGB32_Premultiplied);
     img.fill(Qt::transparent);
     pnt.begin(&img);
+
+    if(mode == mode::create && current_id.has_value() && (view == this->view)){
+        pnt.setOpacity(0.6);
+    }else if(mode == mode::select && (view == this->view)){
+        pnt.setPen(Qt::DashLine);
+        pnt.drawRect(1,1,img.width()-2, img.height()-2);
+        pnt.setPen(Qt::SolidLine);
+    }
+
     pnt.drawRect(0+this->default_gate_w/2,
         0+this->default_gate_h/2, draw_w, draw_h);
 
@@ -141,9 +150,8 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         for(const auto &bit:bit_val){
             txt.append(bit?"1":"0");
         }
-        draw_text(view->x, view->y, txt);
+        draw_text(draw_x, draw_y, txt);
     }
-
     draw_widget::draw_image(draw_x, draw_y, img);
     QPen pen_valid(Qt::black);
     QPen pen_invalid(Qt::red);
@@ -191,8 +199,7 @@ void sim_interface::showContextMenu(const QPoint &p){
     QAction action1("Delete item", this);
     action1.setDisabled(items.empty());
 
-    action1.
-    connect(&action1, SIGNAL(triggered()),
+    action1.connect(&action1, SIGNAL(triggered()),
         this, SLOT(delete_item_cm()));
     contextMenu.addAction(&action1);
     contextMenu.exec(mapToGlobal(p));
@@ -214,8 +221,10 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
     }
     if(mode == mode::select && view){
         if(e->buttons() & Qt::LeftButton){
-            view->x += (*mouse_pos).x()-(*mouse_pos_prev_move).x();
-            view->y += (*mouse_pos).y()-(*mouse_pos_prev_move).y();
+            auto dx = (*mouse_pos).x()-(*mouse_pos_prev_move).x();
+            view->x += dx*1.;
+            auto dy = (*mouse_pos).y()-(*mouse_pos_prev_move).y();
+            view->y += dy*1.;
             glue.add_view(view);
             emit element_selected(view);
             update();
@@ -228,6 +237,8 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
     this->mouse_pos_prev = e->pos();
     auto x = e->x();
     auto y = e->y();
+    auto map_x = (x-cam.x)*1./cam.zoom;
+    auto map_y = (y-cam.y)*1./cam.zoom;
 
     if(current_id.has_value() && mode == mode::create){
         if(e->buttons() & Qt::LeftButton){
@@ -243,8 +254,8 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
         update();
     }else{
         if(e->buttons() & Qt::LeftButton){
-            auto items = glue.find_views(x, y);
-            auto gates = glue.get_gates(x, y);
+            auto items = glue.find_views(map_x, map_y);
+            auto gates = glue.get_gates(map_x, map_y);
             if(!items.empty()){
                 if(this->view == items.front() && mode == mode::select){
                     if(this->view->t == elem_view::type::type_out){
@@ -395,24 +406,12 @@ void sim_interface::paintEvent(QPaintEvent *e) {
 
     QPainter pnt;
     for(auto &el:items){
-        //to skip selected item view
-        if(view && (el->id == view->id)){
-            continue;
-        }
         draw_elem_view(pnt, el);
     }
-    //to draw created or selected element
-    if(mode == mode::create && current_id.has_value()){
-        if(view){
-            draw_elem_view(pnt, view);
-        }else{
-            qWarning()<<"no view for element";
-        }
-    }else if(mode == mode::select){
-        if(view){
-            draw_elem_view(pnt, view);
-        }
+    if(mode == mode::create){
+        draw_elem_view(pnt, this->view);
     }
+    //to draw created or selected element
     if(mouse_pos_prev.has_value() && mouse_pos.has_value()){
         if(mode == mode::connect_gates){
             draw_line(mouse_pos->x(), mouse_pos->y(),
