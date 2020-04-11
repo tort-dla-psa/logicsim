@@ -77,8 +77,20 @@ struct elem_view:view{
 
 class sim_ui_glue{
 private:
-    std::vector<std::shared_ptr<elem_view>> finder;
+    std::vector<std::shared_ptr<elem_view>> views;
     sim_ui_glue(){};
+
+    auto prv_find_view_impl(const size_t &id)const{
+        auto it = std::find_if(views.cbegin(), views.cend(),
+            [&id](const auto &v){
+                return v->id == id;
+            });
+        if(it != views.cend()){
+            return it;
+        }
+        auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
+        throw std::runtime_error(mes);
+    }
 public:
     static sim_ui_glue& get_instance(){
         static std::unique_ptr<sim_ui_glue> _singleton(new sim_ui_glue());
@@ -86,31 +98,17 @@ public:
     }
 
     auto find_view(const size_t &id){
-        auto it = std::find_if(finder.begin(), finder.end(),
-            [&id](const auto &v){
-                return v->id == id;
-            });
-        if(it != finder.end()){
-            return it;
-        }
-        auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
-        throw std::runtime_error(mes);
+        auto const_it = prv_find_view_impl(id);
+        auto dist = std::distance(views.cbegin(), const_it);
+        return views.begin()+dist;
     }
     auto find_view(const size_t &id)const{
-        auto it = std::find_if(finder.begin(), finder.end(),
-            [&id](const auto &v){
-                return v->id == id;
-            });
-        if(it != finder.end()){
-            return it;
-        }
-        auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
-        throw std::runtime_error(mes);
+        return prv_find_view_impl(id);
     }
 
     auto find_views(const long &x, const long &y)const{
         std::vector<std::shared_ptr<elem_view>> ids;
-        for(auto &view:finder){
+        for(auto &view:views){
             if(view->x+view->w > x &&
                 view->x <= x &&
                 view->y+view->h > y &&
@@ -126,20 +124,18 @@ public:
         const long &w, const long &h)const
     {
         std::vector<std::shared_ptr<elem_view>> ids;
-        for(auto &view:finder){
-            if(view->x >= x &&
+        auto predicate = [&x, &y, &w, &h](std::shared_ptr<elem_view> view){
+            return view->x >= x &&
                 view->x < x+w &&
                 view->y >= y &&
-                view->y < y+h)
-            {
-                ids.emplace_back(view);
-            }
-        }
+                view->y < y+h;
+        };
+        std::copy_if(views.begin(), views.end(), std::back_inserter(ids), predicate);
         return ids;
     }
 
     const auto& access_views()const{
-        return finder;
+        return views;
     }
 
     void add_view(const std::shared_ptr<elem_view> &view){
@@ -147,7 +143,7 @@ public:
             auto it = find_view(view->id);
             *it = view;
         }catch(std::runtime_error &e){ //not found
-            finder.emplace_back(view);
+            views.emplace_back(view);
         }
     }
 
@@ -172,64 +168,73 @@ public:
             gt_out->conn.clear();
         }
         el->gates_out.clear();
-        finder.erase(it);
+        views.erase(it);
     }
 
-    auto get_gate(const std::shared_ptr<elem_view>& view, int x, int y){
+    auto get_gate(const std::shared_ptr<elem_view>& view, int x, int y)const{
         std::shared_ptr<gate_view> gt;
         x -= view->x;
         y -= view->y;
         auto &gates_in = view->gates_in;
         auto &gates_out = view->gates_out;
-        for(auto &gate:gates_in){
-            if(gate->x-gate->w/2 <= x &&
+        auto predicate = [&x, &y](std::shared_ptr<gate_view> gate){
+            return gate->x-gate->w/2 <= x &&
                 gate->y-gate->h/2 <= y &&
                 gate->x+gate->w/2 > x &&
-                gate->y+gate->h/2 > y)
-            {
-                gt = gate;
-                return gt;
-            } 
+                gate->y+gate->h/2 > y;
+        };
+        auto it_in = std::find_if(gates_in.begin(), gates_in.end(), predicate);
+        if(it_in != gates_in.end()){
+            gt = *it_in;
+            return gt;
         }
-        for(auto &gate:gates_out){
-            if(gate->x-gate->w/2 <= x &&
-                gate->y-gate->h/2 <= y &&
-                gate->x+gate->w/2 > x &&
-                gate->y+gate->h/2 > y)
-            {
-                gt = gate;
-                return gt;
-            } 
+        auto it_out = std::find_if(gates_out.begin(), gates_out.end(), predicate);
+        if(it_out != gates_out.end()){
+            gt = *it_out;
+            return gt;
         }
         return gt; //nullptr
     }
 
     auto get_gates(int x, int y)const{
         std::vector<std::shared_ptr<gate_view>> gates;
-        for(auto &view:this->finder){
+        auto predicate = [](std::shared_ptr<gate_view> gate, int x_, int y_){
+            return gate->x <= x_ &&
+                gate->y <= y_ &&
+                gate->x+gate->w > x_ &&
+                gate->y+gate->h > y_;
+        };
+        for(auto &view:this->views){
             int x_ =  x - view->x;
             int y_ =  y - view->y;
             auto &gates_in = view->gates_in;
             auto &gates_out = view->gates_out;
-            for(auto &gate:gates_in){
-                if(gate->x <= x_ &&
-                    gate->y <= y_ &&
-                    gate->x+gate->w > x_ &&
-                    gate->y+gate->h > y_)
-                {
-                    gates.emplace_back(gate);
-                } 
-            }
-            for(auto &gate:gates_out){
-                if(gate->x <= x_ &&
-                    gate->y <= y_ &&
-                    gate->x+gate->w > x_ &&
-                    gate->y+gate->h > y_)
-                {
-                    gates.emplace_back(gate);
-                } 
-            }
+            auto tmp_predicate = [&x_, &y_, &predicate](std::shared_ptr<gate_view> ptr){
+                return predicate(ptr, x_, y_);
+            };
+            std::copy_if(gates_in.begin(), gates_in.end(), std::back_inserter(gates), tmp_predicate);
+            std::copy_if(gates_out.begin(), gates_out.end(), std::back_inserter(gates), tmp_predicate);
         }
         return gates;
+    }
+
+    void tie_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2, bool valid){
+        auto tie = [&valid](auto cast_in, auto cast_out){
+            auto conn = std::make_shared<gate_connection>(cast_out, cast_in, valid);
+            cast_out->conn.emplace_back(conn);
+            cast_in->conn.emplace_back(conn);
+        };
+        auto cast_in = std::dynamic_pointer_cast<gate_view_in>(gate_view_1);
+        auto cast_out = std::dynamic_pointer_cast<gate_view_out>(gate_view_2);
+        if(cast_in && cast_out){
+            tie(cast_in, cast_out);
+            return;
+        }
+        cast_in = std::dynamic_pointer_cast<gate_view_in>(gate_view_2);
+        cast_out = std::dynamic_pointer_cast<gate_view_out>(gate_view_1);
+        if(cast_in && cast_out){
+            tie(cast_in, cast_out);
+            return;
+        }
     }
 };
