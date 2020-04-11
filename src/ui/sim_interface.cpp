@@ -112,8 +112,8 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     long draw_h = (view->h)*cam.zoom;
     QImage img(draw_w+this->default_gate_w*cam.zoom+1,
         draw_h+this->default_gate_h*cam.zoom+1,
-        QImage::Format_RGB32);
-    img.fill(Qt::white);
+        QImage::Format_ARGB32_Premultiplied);
+    img.fill(Qt::transparent);
     pnt.begin(&img);
     pnt.drawRect(0+this->default_gate_w/2,
         0+this->default_gate_h/2, draw_w, draw_h);
@@ -155,10 +155,10 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
             }else{
                 draw_widget::set_pen(pen_invalid);
             }
-            draw_widget::draw_line(gate->x+gate->parent->x,
-                gate->y+gate->parent->y,
-                gt->x+gt->parent->x,
-                gt->y+gt->parent->y);
+            draw_widget::draw_line(gate->x+gate->parent->x+gate->w/2,
+                gate->y+gate->parent->y+gate->h/2,
+                gt->x+gt->parent->x+gt->w/2,
+                gt->y+gt->parent->y+gt->h/2);
         }
     }
     draw_widget::set_pen(pen_valid);
@@ -200,6 +200,8 @@ void sim_interface::showContextMenu(const QPoint &p){
 
 void sim_interface::mouseMoveEvent(QMouseEvent *e){
     setFocus();
+    this->mouse_pos_prev_move = this->mouse_pos;
+    this->mouse_pos = e->pos();
     auto x = e->x();
     auto y = e->y();
 
@@ -212,18 +214,13 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
     }
     if(mode == mode::select && view){
         if(e->buttons() & Qt::LeftButton){
-            view->x = x;
-            view->y = y;
+            view->x += (*mouse_pos).x()-(*mouse_pos_prev_move).x();
+            view->y += (*mouse_pos).y()-(*mouse_pos_prev_move).y();
             glue.add_view(view);
             emit element_selected(view);
             update();
             return;
         }
-    }
-    if(this->mouse_pos_prev.has_value()){
-        this->mouse_pos = e->pos();
-        update();
-        return;
     }
 }
 
@@ -285,6 +282,7 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
     auto y = e->y();
     this->mouse_pos.reset();
     this->mouse_pos_prev.reset();
+    this->mouse_pos_prev_move.reset();
     if(this->mode == mode::select && view){
         //view = nullptr;
     }
@@ -419,11 +417,6 @@ void sim_interface::paintEvent(QPaintEvent *e) {
         if(mode == mode::connect_gates){
             draw_line(mouse_pos->x(), mouse_pos->y(),
                 mouse_pos_prev->x(), mouse_pos_prev->y());
-        }else{
-            draw_rect(std::min(mouse_pos->x(), mouse_pos_prev->x()),
-                std::min(mouse_pos->y(), mouse_pos_prev->y()),
-                std::abs(mouse_pos->x() - mouse_pos_prev->x()),
-                std::abs(mouse_pos->y() - mouse_pos_prev->y()));
         }
     }
     this->draw_widget::paintEvent(e);
