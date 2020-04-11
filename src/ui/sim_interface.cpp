@@ -44,7 +44,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
             ins_y += ins_offset;
             if(view->t == elem_view::type::type_in){
                 gt->id = ((elem_in*)elem.get())->get_in_id();
-                auto cast = std::dynamic_pointer_cast<elem_in>(elem);
+                auto cast = std::static_pointer_cast<elem_in>(elem);
                 gt->name = cast->elem_in::get_name();
             }else{
                 gt->id = elem->get_in(i)->get_id();
@@ -69,7 +69,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
             outs_y += outs_offset;
             if(view->t == elem_view::type::type_out){
                 gt->id = ((elem_out*)elem.get())->get_out_id();
-                auto cast  = std::dynamic_pointer_cast<elem_out>(elem);
+                auto cast  = std::static_pointer_cast<elem_out>(elem);
                 gt->name = cast->elem_out::get_name();
             }else{
                 gt->id = elem->get_out(i)->get_id();
@@ -380,21 +380,16 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
 }
 
 void sim_interface::keyPressEvent(QKeyEvent* e){
+    auto beg = pressed_keys.cbegin();
+    auto end = pressed_keys.cend();
     pressed_keys.emplace_back(e->key());
-    bool ctrl = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Control) != pressed_keys.end();
-    bool left = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Left) != pressed_keys.end();
-    bool right = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Right) != pressed_keys.end();
-    bool up = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Up) != pressed_keys.end();
-    bool down = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Down) != pressed_keys.end();
-    bool plus = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Equal) != pressed_keys.end();
-    bool minus = std::find(pressed_keys.begin(), pressed_keys.end(),
-        Qt::Key_Minus) != pressed_keys.end();
+    bool ctrl = std::find(beg, end, Qt::Key_Control) != end;
+    bool left = std::find(beg, end, Qt::Key_Left) != end;
+    bool right = std::find(beg, end, Qt::Key_Right) != end;
+    bool up = std::find(beg, end, Qt::Key_Up) != end;
+    bool down = std::find(beg, end, Qt::Key_Down) != end;
+    bool plus = std::find(beg, end, Qt::Key_Equal) != end;
+    bool minus = std::find(beg, end, Qt::Key_Minus) != end;
     if(current_id.has_value()){
         if(ctrl && (left || right)){
             int cast = (int)view->dir;
@@ -435,11 +430,7 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
 }
 
 void sim_interface::keyReleaseEvent(QKeyEvent* e){
-    auto it = std::find(pressed_keys.begin(), pressed_keys.end(),
-        e->key());
-    if(it != pressed_keys.end()){
-        pressed_keys.erase(it);
-    }
+    std::remove(pressed_keys.begin(), pressed_keys.end(), e->key());
 }
 
 void sim_interface::paintEvent(QPaintEvent *e) {
@@ -456,7 +447,6 @@ void sim_interface::paintEvent(QPaintEvent *e) {
     if(mode == mode::create){
         draw_elem_view(pnt, this->view);
     }
-    //to draw created or selected element
     if(mouse_pos_prev.has_value() && mouse_pos.has_value()){
         if(mode == mode::connect_gates){
             draw_line(mouse_pos->x(), mouse_pos->y(),
