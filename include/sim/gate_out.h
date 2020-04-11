@@ -8,7 +8,7 @@
 class gate_out:public gate{
     std::vector<std::shared_ptr<gate_in>> ins;
 public:
-    gate_out(const std::string &name, size_t width=1)
+    gate_out(const std::string &name, const size_t &width=1)
         :gate(name, width),
         nameable(name)
     {}
@@ -23,7 +23,7 @@ public:
         set_values(val);
         pass_value();
     }
-    void tie_input(std::shared_ptr<gate_in> in){
+    void tie_input(const std::shared_ptr<gate_in> &in){
         if(in->get_width() != this->get_width()){
             auto mes = "attempt to tie input "+in->get_name()+
                 " of width "+std::to_string(in->get_width())+
@@ -44,5 +44,8 @@ public:
     bool tied(const std::shared_ptr<gate_in> &in){
         auto it = std::find(ins.begin(), ins.end(), in);
         return !(it == ins.end());
+    }
+    auto& get_tied()const{
+        return ins;
     }
 };

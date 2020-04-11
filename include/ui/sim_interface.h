@@ -19,7 +19,7 @@ class sim_interface : public draw_widget {
         double zoom=1.;
     }cam;
 
-    std::optional<QPoint> mouse_pos_prev, mouse_pos;
+    std::optional<QPoint> mouse_pos_prev, mouse_pos_prev_move, mouse_pos;
     sim_ui_glue& glue;
 
     std::optional<size_t> current_id;
