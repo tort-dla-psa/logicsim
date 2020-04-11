@@ -9,7 +9,7 @@
 class sim{
 private:
     std::vector<std::shared_ptr<element>> elements;
-    auto find_by_id(size_t id){
+    auto find_by_id(const size_t &id){
         auto el = std::find_if(elements.begin(), elements.end(),
             [&id](const auto &el){
                 return id == el->get_id();
@@ -17,13 +17,29 @@ private:
         );
         if(el == elements.end()){
             auto mes = "there's no element with id "+std::to_string(id)+
-                "in simulation";
+                " in simulation";
             throw std::runtime_error(mes);
         }
         return el;
     }
+    auto find_gate_by_id(const size_t &id){
+        for(auto &el:elements){
+            auto cast = std::dynamic_pointer_cast<gate>(el);
+            if(cast){
+                return cast;
+            }
+            for(auto &gt_:el->access_gates()){
+                if(gt_->get_id() == id){
+                    return gt_;
+                }
+            }
+        }
+        auto mes = "there's no gate with id "+std::to_string(id)+
+            " in simulation";
+        throw std::runtime_error(mes);
+    }
     template<class T>
-    auto find_type_by_id(size_t id){
+    auto find_type_by_id(const size_t &id){
         auto el = *find_by_id(id);
         auto out = std::dynamic_pointer_cast<T>(el);
         if(!out){
@@ -34,10 +50,10 @@ private:
         return out;
     }
 public:
-    std::shared_ptr<element>& get_element(size_t id){
+    auto& get_element(const size_t &id){
         return *find_by_id(id);
     }
-    void delete_element(size_t id){
+    void delete_element(const size_t &id){
         elements.erase(find_by_id(id));
     }
     void add_element(std::unique_ptr<element> &&el){
@@ -54,19 +70,19 @@ public:
             el->process();
         }
     }
-    void set_out_value(size_t id, const std::vector<bool> &val){
+    void set_out_value(const size_t &id, const std::vector<bool> &val){
         auto el = find_type_by_id<elem_out>(id);
         el->set_values(val);
     }
-    auto get_out_value(size_t id){
+    auto get_out_value(const size_t &id){
         auto el = find_type_by_id<elem_out>(id);
         return el->get_values();
     }
-    size_t get_out_width(size_t id){
+    size_t get_out_width(const size_t &id){
         auto el = find_type_by_id<elem_out>(id);
         return el->get_width();
     }
-    auto get_in_value(size_t id, size_t place){
+    auto get_in_value(const size_t &id, const size_t &place){
         auto el = *find_by_id(id);
         auto in_cast = std::dynamic_pointer_cast<gate_in>(el);
         if(in_cast){
@@ -80,7 +96,7 @@ public:
         }
         return el->get_in(place)->get_values();
     }
-    auto get_out_value(size_t id, size_t place){
+    auto get_out_value(const size_t &id, const size_t &place){
         auto el = *find_by_id(id);
         auto out_cast = std::dynamic_pointer_cast<gate_out>(el);
         if(out_cast){
@@ -94,7 +110,7 @@ public:
         }
         return el->get_out(place)->get_values();
     }
-    void set_gate_width(size_t id, size_t width){
+    void set_gate_width(const size_t &id, const size_t &width){
         auto el = *find_by_id(id);
         auto out_cast = std::dynamic_pointer_cast<gate_out>(el);
         if(out_cast){
@@ -109,26 +125,25 @@ public:
         auto mes = "ID "+std::to_string(id)+" is not a gate, setting bit_width is illegal";
         throw std::runtime_error(mes);
     }
-    auto get_gate_width(size_t id){
-        auto el = *find_by_id(id);
-        auto cast = std::dynamic_pointer_cast<gate>(el);
-        if(cast){
-            return cast->get_width();
+    auto get_gate_width(const size_t &id){
+        auto gt = find_gate_by_id(id);
+        if(gt){
+            return gt->get_width();
         }
         auto mes = "ID "+std::to_string(id)+" is not a gate, getting bit_width is illegal";
         throw std::runtime_error(mes);
     }
-    void connect_gates(size_t id1, size_t id2){
+    void connect_gates(const size_t &id1, const size_t &id2){
         std::shared_ptr<gate> gt1, gt2;
         for(auto it = elements.begin(); it < elements.end(); it++){
             auto &gates = (*it)->access_gates();
-            for(auto gt = gates.begin(); gt != gates.end(); gt++){
-                if(gt->get()->get_id() == id1 && !gt1){
-                    gt1 = *gt;
+            for(auto &gt:gates){
+                if(gt->get_id() == id1 && !gt1){
+                    gt1 = gt;
                     continue;
                 }
-                if(gt->get()->get_id() == id2 && !gt2){
-                    gt2 = *gt;
+                if(gt->get_id() == id2 && !gt2){
+                    gt2 = gt;
                     break;
                 }
             }
