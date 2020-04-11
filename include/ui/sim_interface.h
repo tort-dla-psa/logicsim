@@ -55,6 +55,7 @@ class sim_interface : public draw_widget {
     void draw_custom(QPainter &p, int x, int y, int w, int h);
     void draw_out(QPainter &p, int x, int y, int w, int h);
     void draw_in(QPainter &p, int x, int y, int w, int h);
+    void try_tick();
 public:
 	sim_interface(QWidget *parent = nullptr);
     virtual ~sim_interface();

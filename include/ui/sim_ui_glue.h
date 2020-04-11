@@ -217,4 +217,24 @@ public:
         }
         return gates;
     }
+
+    void tie_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2, bool valid){
+        auto tie = [&valid](auto cast_in, auto cast_out){
+            auto conn = std::make_shared<gate_connection>(cast_out, cast_in, valid);
+            cast_out->conn.emplace_back(conn);
+            cast_in->conn.emplace_back(conn);
+        };
+        auto cast_in = std::dynamic_pointer_cast<gate_view_in>(gate_view_1);
+        auto cast_out = std::dynamic_pointer_cast<gate_view_out>(gate_view_2);
+        if(cast_in && cast_out){
+            tie(cast_in, cast_out);
+            return;
+        }
+        cast_in = std::dynamic_pointer_cast<gate_view_in>(gate_view_2);
+        cast_out = std::dynamic_pointer_cast<gate_view_out>(gate_view_1);
+        if(cast_in && cast_out){
+            tie(cast_in, cast_out);
+            return;
+        }
+    }
 };

@@ -4,6 +4,7 @@
 #include "sim/bit_math.h"
 #include <QInputDialog>
 #include <QMenu>
+#include <QMessageBox>
 #include <QAction>
 #include <QPen>
 
@@ -234,6 +235,14 @@ sim_interface::sim_interface(QWidget* parent)
 }
 sim_interface::~sim_interface(){}
 
+void sim_interface::try_tick(){
+    try{
+        sim.start();
+    }catch(std::runtime_error &e){
+        QMessageBox::critical(this, "Error!", QString::fromStdString(e.what()));
+    }
+}
+
 void sim_interface::delete_item_cm(){
     auto items = glue.find_views(cm_pos.x(), cm_pos.y());
     glue.del_view(items.front()->id);
@@ -319,6 +328,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
                             bits.resize(out_width);
                         }
                         sim.set_out_value(this->view->id, bits);
+                        try_tick();
                         return;
                     }
                 }else{
@@ -360,25 +370,8 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
             valid = false;
             qWarning("wrong connection");
         }
-        auto cast_in = std::dynamic_pointer_cast<gate_view_in>(this->gate_view_1);
-        auto cast_out = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_1);
-        if(cast_in){
-            auto cast_out_2 = std::dynamic_pointer_cast<gate_view_out>(this->gate_view_2);
-            if(cast_out_2){
-                auto conn = std::make_shared<gate_connection>(cast_out_2, cast_in, valid);
-                cast_out_2->conn.emplace_back(conn);
-                cast_in->conn.emplace_back(conn);
-            }else{ //TODO:throw dialog
-            }
-        }else if(cast_out){
-            auto cast_in_2 = std::dynamic_pointer_cast<gate_view_in>(this->gate_view_2);
-            if(cast_in_2){
-                auto conn = std::make_shared<gate_connection>(cast_out, cast_in_2, valid);
-                cast_out->conn.emplace_back(conn);
-                cast_in_2->conn.emplace_back(conn);
-            }else{ //TODO:throw dialog
-            }
-        }
+        glue.tie_gates(gate_view_1, gate_view_2, valid);
+        try_tick();
         this->gate_view_1 = this->gate_view_2 = nullptr;
         this->mode = mode::still;
     }
