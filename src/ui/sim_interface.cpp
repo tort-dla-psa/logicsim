@@ -305,6 +305,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             mode = mode::select;
             //current_id.reset();
             //view = nullptr;
+            emit element_selected(view);
         }else if(e->buttons() & Qt::RightButton){
             current_id.reset();
             view = nullptr;
@@ -334,6 +335,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
                 }else{
                     this->view = items.front();
                     this->mode = mode::select;
+                    emit element_selected(view);
                     return;
                 }
             }else if(!gates.empty()){
