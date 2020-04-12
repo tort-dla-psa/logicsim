@@ -12,6 +12,14 @@ struct view{
     std::string name;
     size_t id;
     long x, y, w, h;
+    
+    enum class state{
+        normal,
+        creating,
+        selected,
+        copied,
+        cut
+    }st;
 };
 struct gate_view:view{
     enum class direction{

@@ -22,7 +22,6 @@ class sim_interface : public draw_widget {
     std::optional<QPoint> mouse_pos_prev, mouse_pos_prev_move, mouse_pos;
     sim_ui_glue& glue;
 
-    std::optional<size_t> current_id;
     std::shared_ptr<elem_view> view;
     std::shared_ptr<gate_view> gate_view_1, gate_view_2;
 	class sim sim;
@@ -44,6 +43,10 @@ class sim_interface : public draw_widget {
 
     std::shared_ptr<elem_view> elem_to_view(const std::shared_ptr<element> &elem);
     std::shared_ptr<elem_view> elem_to_view(size_t id);
+    elem_view::type class_to_type(const std::shared_ptr<element> &elem);
+    void place_gates_in(std::shared_ptr<elem_view> &view, const std::shared_ptr<element> &elem);
+    void place_gates_out(std::shared_ptr<elem_view> &view, const std::shared_ptr<element> &elem);
+
     void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
     void rotate_view(std::shared_ptr<elem_view> &view);
 
@@ -60,8 +63,9 @@ class sim_interface : public draw_widget {
     template<class Elem>
     void create_elem(const std::string &name){
         this->mode = mode::create;
-        this->current_id = sim.create_element<Elem>(name);
-        this->view = elem_to_view(this->current_id.value());
+        auto id = sim.create_element<Elem>(name);
+        this->view = elem_to_view(id);
+        this->view->st == elem_view::state::creating;
     }
 public:
 	sim_interface(QWidget *parent = nullptr);
