@@ -1,7 +1,7 @@
 ![CmakeCI](https://github.com/tort-dla-psa/logicsim/workflows/CmakeCI/badge.svg?branch=master&event=push)
 
 # logicsim
-Modern c++/qt logic blocks simulator designed as a successor of famous [Logisim](http://www.cburch.com/logisim/), which I absolytely love and recommend to try.
+Modern c++/qt logic blocks simulator designed as a successor of famous [Logisim](http://www.cburch.com/logisim/), which I absolutely love and recommend to try.
 
 ## Prerequisites
 * Qt5
