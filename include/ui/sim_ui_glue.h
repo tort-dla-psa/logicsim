@@ -125,9 +125,11 @@ public:
         return ids;
     }
 
-    auto find_views(const long &x, const long &y,
-        const long &w, const long &h)const
-    {
+    auto find_views(long x, long y, long w, long h)const{
+        x = std::min(x, x+w);
+        y = std::min(y, y+h);
+        w = std::abs(w);
+        h = std::abs(h);
         std::vector<std::shared_ptr<elem_view>> ids;
         auto predicate = [&x, &y, &w, &h](std::shared_ptr<elem_view> view){
             return view->x >= x &&

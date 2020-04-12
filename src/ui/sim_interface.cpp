@@ -242,6 +242,7 @@ sim_interface::sim_interface(QWidget* parent)
             this, &sim_interface::showContextMenu);
     setFocus();
     QWidget::setMouseTracking(true);
+    mode = mode::still;
 }
 sim_interface::~sim_interface(){}
 
@@ -300,6 +301,18 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
             return;
         }
     }
+    if(this->mouse_pos_prev.has_value() && this->mode == mode::still){//click happened
+        this->mode = mode::select_frame;
+    }
+    if(mode == mode::select_frame){
+        this->selected_views = glue.find_views(mouse_pos_prev->x(), mouse_pos_prev->y(),
+            mouse_pos->x() - mouse_pos_prev->x(),
+            mouse_pos->y() - mouse_pos_prev->y());
+        for(auto &v:selected_views){
+            v->st = elem_view::state::selected;
+        }
+        update();//draw frame
+    }
 }
 
 void sim_interface::mousePressEvent(QMouseEvent *e){
@@ -309,6 +322,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
     auto map_x = (x-cam.x)*1./cam.zoom;
     auto map_y = (y-cam.y)*1./cam.zoom;
 
+    //place created element or destroy it
     if(this->view && mode == mode::create){
         if(e->buttons() & Qt::LeftButton){
             glue.add_view(view);
@@ -321,55 +335,71 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             mode = mode::still;
         }
         update();
-    }else{
-        if(e->buttons() & Qt::LeftButton){
-            auto items = glue.find_views(map_x, map_y);
-            auto gates = glue.get_gates(map_x, map_y);
-            if(!items.empty()){
-                if(this->view == items.front() && mode == mode::select){
-                    if(this->view->t == elem_view::type::type_out){
-                        int input = QInputDialog::getInt(this, "input devimal value", "input decimal value to pass");
-                        auto bits = bits::to_bits(input);
-                        auto out_width = sim.get_out_width(view->id);
-                        if(bits.size() > out_width){
-                            //TODO:warning
-                            bits.erase(bits.begin()+out_width, bits.end());
-                        }else if(bits.size() < out_width){
-                            bits.resize(out_width);
-                        }
-                        sim.set_out_value(this->view->id, bits);
-                        try_tick();
-                        return;
+        return;
+    }
+    if(e->buttons() & Qt::LeftButton){
+        //check if user clicked on a view of element
+        auto items = glue.find_views(map_x, map_y);
+        if(!items.empty()){
+            if(this->view == items.front() && mode == mode::select){
+                if(this->view->t == elem_view::type::type_out){
+                    int input = QInputDialog::getInt(this, "input devimal value", "input decimal value to pass");
+                    auto bits = bits::to_bits(input);
+                    auto out_width = sim.get_out_width(view->id);
+                    if(bits.size() > out_width){
+                        //TODO:warning
+                        bits.erase(bits.begin()+out_width, bits.end());
+                    }else if(bits.size() < out_width){
+                        bits.resize(out_width);
                     }
-                }else{
-                    this->view = items.front();
-                    this->view->st = elem_view::state::selected;
-                    this->mode = mode::select;
-                    emit element_selected(view);
+                    sim.set_out_value(this->view->id, bits);
+                    try_tick();
                     return;
                 }
-            }else if(!gates.empty()){
+            }else{
+                this->view = items.front();
+                this->view->st = elem_view::state::selected;
+                this->mode = mode::select;
+                emit element_selected(view);
+                return;
+            }
+        }else{
+            //check if user clicked on a gate
+            auto gates = glue.get_gates(map_x, map_y);
+            if(!gates.empty()){
                 this->mode = mode::connect_gates;
                 this->gate_view_1 = gates.front();
-            }else{
-                mode = mode::still;
-                if(this->view){
-                    this->view->st = elem_view::state::normal;
-                    this->view = nullptr;
-                }
+                return;
             }
         }
+        //deselect element
+        mode = mode::still;
+        if(this->view){
+            this->view->st = elem_view::state::normal;
+            this->view = nullptr;
+        }
+        for(auto &v:selected_views){
+            v->st = elem_view::state::normal;
+        }
+        selected_views.clear();
     }
 }
 
 void sim_interface::mouseReleaseEvent(QMouseEvent *e){
     auto x = e->x();
     auto y = e->y();
-    this->mouse_pos.reset();
-    this->mouse_pos_prev.reset();
-    this->mouse_pos_prev_move.reset();
+    auto reset_pos = [this](){
+        this->mouse_pos.reset();
+        this->mouse_pos_prev.reset();
+        this->mouse_pos_prev_move.reset();
+    };
+    if(this->mode == mode::still){
+        reset_pos();
+        return;
+    }
     if(this->mode == mode::select && view){
-        //view = nullptr;
+        reset_pos();
+        return;
     }
     if(this->mode == mode::connect_gates && this->gate_view_1) {
         auto gates = glue.get_gates(x, y);
@@ -388,13 +418,20 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
         try_tick();
         this->gate_view_1 = this->gate_view_2 = nullptr;
         this->mode = mode::still;
+        reset_pos();
+        return;
+    }
+    if(this->mode == mode::select_frame){
+        reset_pos();
+        this->mode = mode::still;
+        return;
     }
 }
 
 void sim_interface::keyPressEvent(QKeyEvent* e){
+    pressed_keys.emplace_back(e->key());
     auto beg = pressed_keys.cbegin();
     auto end = pressed_keys.cend();
-    pressed_keys.emplace_back(e->key());
     bool ctrl = std::find(beg, end, Qt::Key_Control) != end;
     bool left = std::find(beg, end, Qt::Key_Left) != end;
     bool right = std::find(beg, end, Qt::Key_Right) != end;
@@ -417,14 +454,6 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
             return;
         }
     }
-    if(plus){
-        cam.zoom += 0.25;
-    }else if(minus){
-        cam.zoom -= 0.25;
-    }
-    if(plus || minus){
-        return;
-    }
     if(ctrl){
         if(left){
             cam.x -= this->default_elem_width*2;
@@ -438,11 +467,19 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
         if(left || right || up || down){
             return;
         }
+        if(plus){
+            cam.zoom += 0.25;
+            return;
+        }else if(minus){
+            cam.zoom -= 0.25;
+            return;
+        }
     }
 }
 
 void sim_interface::keyReleaseEvent(QKeyEvent* e){
-    std::remove(pressed_keys.begin(), pressed_keys.end(), e->key());
+    auto it = std::find(pressed_keys.begin(), pressed_keys.end(), e->key());
+    this->pressed_keys.erase(it);
 }
 
 void sim_interface::paintEvent(QPaintEvent *e) {
@@ -458,12 +495,15 @@ void sim_interface::paintEvent(QPaintEvent *e) {
     }
     if(mode == mode::create){
         draw_elem_view(pnt, this->view);
-    }
-    if(mouse_pos_prev.has_value() && mouse_pos.has_value()){
-        if(mode == mode::connect_gates){
-            draw_line(mouse_pos->x(), mouse_pos->y(),
-                mouse_pos_prev->x(), mouse_pos_prev->y());
-        }
+    }else if(mode == mode::connect_gates &&
+        mouse_pos_prev.has_value() && mouse_pos.has_value())
+    {
+        draw_line(mouse_pos->x(), mouse_pos->y(),
+            mouse_pos_prev->x(), mouse_pos_prev->y());
+    }else if(mode == mode::select_frame){
+        draw_rect(mouse_pos_prev->x(), mouse_pos_prev->y(),
+            mouse_pos->x() - mouse_pos_prev->x(),
+            mouse_pos->y() - mouse_pos_prev->y());
     }
     this->draw_widget::paintEvent(e);
 }

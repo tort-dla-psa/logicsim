@@ -23,6 +23,7 @@ class sim_interface : public draw_widget {
     sim_ui_glue& glue;
 
     std::shared_ptr<elem_view> view;
+    std::vector<std::shared_ptr<elem_view>> selected_views;
     std::shared_ptr<gate_view> gate_view_1, gate_view_2;
 	class sim sim;
     size_t w=1000, h=1000,
@@ -35,6 +36,7 @@ class sim_interface : public draw_widget {
         still,
         create,
         select,
+        select_frame,
         connect_gates
     }mode;
 
@@ -62,6 +64,9 @@ class sim_interface : public draw_widget {
 
     template<class Elem>
     void create_elem(const std::string &name){
+        if(this->view){
+            this->view->st = elem_view::state::normal;
+        }
         this->mode = mode::create;
         auto id = sim.create_element<Elem>(name);
         this->view = elem_to_view(id);
