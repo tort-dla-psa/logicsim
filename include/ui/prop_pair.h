@@ -16,10 +16,12 @@ class prop_pair: public QWidget{
 	QLineEdit* le;
 	QHBoxLayout* layout;
 	QString m_name;
+	const QString default_value;
 public:
-	using prop_func_get = std::function<QString(std::shared_ptr<elem_view>)>;
+	using prop_func_get = std::function<QString(const std::shared_ptr<elem_view>)>;
 	using prop_func_set = std::function<void(std::shared_ptr<elem_view>)>;
-	prop_pair(QString name, QString lbl_txt, QWidget *parent);
+	prop_pair(const QString &name, const QString &lbl_txt, const QString &default_value, QWidget *parent);
+	prop_pair(const QString &name, const QString &lbl_txt, QWidget *parent);
 	~prop_pair();
 
 	const QLabel* get_label()const;
@@ -32,7 +34,10 @@ public:
 
 	void set_getter(prop_func_get getter);
 	void set_setter(prop_func_set setter);
-	QString name()const;
+	const QString& name()const;
+
+public slots:
+	void reset();
 signals:
 	void text_changed();
 private slots:
