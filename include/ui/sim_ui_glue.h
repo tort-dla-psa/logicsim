@@ -111,18 +111,19 @@ public:
         return prv_find_view_impl(id);
     }
 
+    auto find_views(const std::function<bool(const std::shared_ptr<elem_view>&)> &predicate)const{
+        std::vector<std::shared_ptr<elem_view>> result;
+        std::copy_if(views.begin(), views.end(), std::back_inserter(result), predicate);
+        return result;
+    }
     auto find_views(const long &x, const long &y)const{
-        std::vector<std::shared_ptr<elem_view>> ids;
-        for(auto &view:views){
-            if(view->x+view->w > x &&
+        auto predicate = [&x, &y](auto view){
+            return (view->x+view->w > x &&
                 view->x <= x &&
                 view->y+view->h > y &&
-                view->y <= y)
-            {
-                ids.emplace_back(view);
-            }
-        }
-        return ids;
+                view->y <= y);
+        };
+        return find_views(predicate);
     }
 
     auto find_views(long x, long y, long w, long h)const{
@@ -130,15 +131,13 @@ public:
         y = std::min(y, y+h);
         w = std::abs(w);
         h = std::abs(h);
-        std::vector<std::shared_ptr<elem_view>> ids;
-        auto predicate = [&x, &y, &w, &h](std::shared_ptr<elem_view> view){
+        auto predicate = [&x, &y, &w, &h](auto view){
             return view->x >= x &&
                 view->x < x+w &&
                 view->y >= y &&
                 view->y < y+h;
         };
-        std::copy_if(views.begin(), views.end(), std::back_inserter(ids), predicate);
-        return ids;
+        return find_views(predicate);
     }
 
     const auto& access_views()const{
@@ -186,7 +185,7 @@ public:
         y -= view->y;
         auto &gates_in = view->gates_in;
         auto &gates_out = view->gates_out;
-        auto predicate = [&x, &y](std::shared_ptr<gate_view> gate){
+        auto predicate = [&x, &y](auto gate){
             return gate->x-gate->w/2 <= x &&
                 gate->y-gate->h/2 <= y &&
                 gate->x+gate->w/2 > x &&
@@ -207,7 +206,7 @@ public:
 
     auto get_gates(int x, int y)const{
         std::vector<std::shared_ptr<gate_view>> gates;
-        auto predicate = [](std::shared_ptr<gate_view> gate, int x_, int y_){
+        auto predicate = [](auto gate, int x_, int y_){
             return gate->x <= x_ &&
                 gate->y <= y_ &&
                 gate->x+gate->w > x_ &&
@@ -218,7 +217,7 @@ public:
             int y_ =  y - view->y;
             auto &gates_in = view->gates_in;
             auto &gates_out = view->gates_out;
-            auto tmp_predicate = [&x_, &y_, &predicate](std::shared_ptr<gate_view> ptr){
+            auto tmp_predicate = [&x_, &y_, &predicate](auto ptr){
                 return predicate(ptr, x_, y_);
             };
             std::copy_if(gates_in.begin(), gates_in.end(), std::back_inserter(gates), tmp_predicate);
