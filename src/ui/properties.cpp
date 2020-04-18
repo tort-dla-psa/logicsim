@@ -102,7 +102,16 @@ void properties::update_props(const std::shared_ptr<elem_view> &view){
     }
 }
 
+void properties::reset(){
+    for(auto prop:props){
+        prop->reset();
+    }
+}
 void properties::slot_element_selected(std::shared_ptr<elem_view> view){
+    if(!view){
+        reset();
+        return;
+    }
     update_props(view);
     for(auto &prop:props){
         if(prop->isHidden()){
