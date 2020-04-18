@@ -289,14 +289,25 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
         update();
         return;
     }
-    if(mode == mode::select && view){
+    if(mode == mode::select){
         if(e->buttons() & Qt::LeftButton){
-            auto dx = (*mouse_pos).x()-(*mouse_pos_prev_move).x();
-            view->x += dx*1.;
-            auto dy = (*mouse_pos).y()-(*mouse_pos_prev_move).y();
-            view->y += dy*1.;
-            glue.add_view(view);
-            emit element_selected(view);
+            auto predicate = [](auto view){
+                return view->st == elem_view::state::selected;
+            };
+            auto views = glue.find_views(predicate);
+            auto trans = [this](auto view){
+                auto dx = (*mouse_pos).x()-(*mouse_pos_prev_move).x();
+                view->x += dx*1.;
+                auto dy = (*mouse_pos).y()-(*mouse_pos_prev_move).y();
+                view->y += dy*1.;
+                return view;
+            };
+            std::transform(views.begin(), views.end(), views.begin(), trans);
+            if(views.size() > 1){
+                emit element_selected(nullptr);
+            }else{
+                emit element_selected(views.at(0));
+            }
             update();
             return;
         }
