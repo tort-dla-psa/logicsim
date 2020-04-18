@@ -57,11 +57,13 @@ properties::properties(QWidget* parent)
 
     prop = props.emplace_back(new prop_pair("bit_w", "bits", this));
     prop->set_getter([](auto view){
-        return QString::number(view->bit_width);
+        auto cast = std::dynamic_pointer_cast<elem_view_gate>(view);
+        return QString::number(cast->bit_width);
     }); 
     prop->set_setter([prop](auto view){
         auto le = prop->get_line_edit();
-        view->bit_width = le->text().toLong();
+        auto cast = std::dynamic_pointer_cast<elem_view_gate>(view);
+        cast->bit_width = le->text().toLong();
     }); 
     prop->hide();
 
@@ -91,9 +93,7 @@ void properties::update_props(const std::shared_ptr<elem_view> &view){
         {
             prop->show();
         }else if(name == "bit_w"){
-            if(view->t == elem_view::type::type_in ||
-                view->t == elem_view::type::type_out)
-            {
+            if(std::dynamic_pointer_cast<elem_view_gate>(view)){
                 prop->QWidget::setHidden(false);
             }else{
                 prop->QWidget::setHidden(true);

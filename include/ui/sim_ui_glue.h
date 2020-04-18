@@ -20,6 +20,8 @@ struct view{
         copied,
         cut
     }st;
+
+    virtual ~view(){}
 };
 struct gate_view:view{
     enum class direction{
@@ -60,14 +62,6 @@ struct gate_connection{
     }
 };
 struct elem_view:view{
-    enum class type{
-        type_and,
-        type_or,
-        type_not,
-        type_in,
-        type_out,
-        type_custom
-    }t = type::type_custom;
     enum class direction{
         dir_up,
         dir_right,
@@ -75,9 +69,20 @@ struct elem_view:view{
         dir_left
     }dir = direction::dir_right;
 
-    long bit_width; //for type_in and type_out
     std::vector<std::shared_ptr<gate_view_in>> gates_in;
     std::vector<std::shared_ptr<gate_view_out>> gates_out;
+};
+
+struct elem_view_and:elem_view{};
+struct elem_view_or:elem_view{};
+struct elem_view_not:elem_view{};
+struct elem_view_gate:elem_view{
+    long bit_width;
+};
+struct elem_view_in:elem_view_gate{};
+struct elem_view_out:elem_view_gate{};
+struct elem_view_meta:elem_view{
+    std::vector<std::shared_ptr<elem_view>> elems;
 };
 
 class sim_ui_glue{
@@ -96,10 +101,29 @@ private:
         auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
         throw std::runtime_error(mes);
     }
+
+    std::shared_ptr<elem_view_meta> global_root, root;
 public:
     static sim_ui_glue& get_instance(){
         static std::unique_ptr<sim_ui_glue> _singleton(new sim_ui_glue());
         return *_singleton;
+    }
+
+    void set_root(const std::shared_ptr<elem_view> view){
+        auto cast = std::dynamic_pointer_cast<elem_view_meta>(view);
+        if(cast || view != nullptr){
+            auto mes = "setting root not to element that is not meta_element";
+            throw std::runtime_error(mes);
+        }
+        this->root = cast;
+    }
+
+    void go_to_global_root(){
+        set_root(global_root);
+    }
+
+    auto get_root()const{
+        return root;
     }
 
     auto find_view(const size_t &id){

@@ -50,7 +50,17 @@ private:
         return out;
     }
 public:
-    auto& get_element(const size_t &id){
+    auto get_sub_elements(const size_t &id)const{
+        const auto meta = find_type_by_id<elem_meta>(id);
+        auto elems = meta->get_sub_elements();
+        std::vector<size_t> ids;
+        std::transform(elems.begin(), elems.end(), std::back_inserter(ids),
+            [](const auto el){
+                return el.get().get_id();
+        });
+        return ids;
+    }
+    auto get_element(const size_t &id)const{
         return *find_by_id(id);
     }
     void delete_element(const size_t &id){

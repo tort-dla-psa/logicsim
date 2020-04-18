@@ -13,7 +13,20 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(size_t id){
     return elem_to_view(el);
 }
 std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<element> &elem){
-    auto view = std::make_shared<elem_view>();
+    std::shared_ptr<elem_view> view;
+    if(std::dynamic_pointer_cast<class gate_in>(elem)){
+        view = std::make_shared<elem_view_in>();
+    }else if(std::dynamic_pointer_cast<class gate_out>(elem)){
+        view = std::make_shared<elem_view_out>();
+    }else if(std::dynamic_pointer_cast<class elem_and>(elem)){
+        view = std::make_shared<elem_view_and>();
+    }else if(std::dynamic_pointer_cast<class elem_or>(elem)){
+        view = std::make_shared<elem_view_or>();
+    }else if(std::dynamic_pointer_cast<class elem_not>(elem)){
+        view = std::make_shared<elem_view_not>();
+    }else if(std::dynamic_pointer_cast<class elem_meta>(elem)){
+        view = std::make_shared<elem_view_meta>();
+    }
     auto id = elem->get_id();
 
     view->name = elem->get_name();
@@ -21,20 +34,11 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::shared_ptr<ele
     view->h = this->default_elem_height;
     view->id = id;
     view->dir = elem_view::direction::dir_right;
-    view->t = class_to_type(elem);
     view->st = elem_view::state::normal;
 
     place_gates_in(view, elem);
     place_gates_out(view, elem);
     return view;
-}
-elem_view::type sim_interface::class_to_type(const std::shared_ptr<element> &elem){
-    return dynamic_cast<elem_and*>(elem.get())? elem_view::type::type_and:
-        dynamic_cast<elem_or*>(elem.get())? elem_view::type::type_or:
-        dynamic_cast<elem_not*>(elem.get())? elem_view::type::type_not:
-        dynamic_cast<elem_in*>(elem.get())? elem_view::type::type_in:
-        dynamic_cast<elem_out*>(elem.get())? elem_view::type::type_out:
-        elem_view::type::type_custom;
 }
 void sim_interface::place_gates_in(std::shared_ptr<elem_view> &view,
     const std::shared_ptr<element> &elem)
@@ -54,7 +58,7 @@ void sim_interface::place_gates_in(std::shared_ptr<elem_view> &view,
         auto gt = std::make_shared<gate_view_in>(*gt_);
         gt->y = ins_y;
         ins_y += ins_offset;
-        if(view->t == elem_view::type::type_in){
+        if(std::dynamic_pointer_cast<elem_view_gate>(view)){
             auto cast = std::static_pointer_cast<elem_in>(elem);
             gt->id = cast->get_in_id();
             gt->name = cast->elem_in::get_name();
@@ -84,7 +88,7 @@ void sim_interface::place_gates_out(std::shared_ptr<elem_view> &view,
         auto gt = std::make_shared<gate_view_out>(*gt_);
         gt->y = outs_y;
         outs_y += outs_offset;
-        if(view->t == elem_view::type::type_out){
+        if(std::dynamic_pointer_cast<elem_view_gate>(view)){
             auto cast  = std::static_pointer_cast<elem_out>(elem);
             gt->id = cast->get_out_id();
             gt->name = cast->elem_out::get_name();
@@ -151,7 +155,7 @@ void sim_interface::draw_not(QPainter &p, int x, int y, int w, int h){
     path.lineTo(x, y);
     p.drawPath(path);
 }
-void sim_interface::draw_custom(QPainter &p, int x, int y, int w, int h){
+void sim_interface::draw_meta(QPainter &p, int x, int y, int w, int h){
     QRectF rect(x, y, w, h); 
     p.drawRect(rect);
 }
@@ -180,14 +184,14 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         pnt.drawRect(1,1,img.width()-2, img.height()-2);
         pnt.setPen(Qt::SolidLine);
     }
-    if(view->t == elem_view::type::type_and){
+    if(std::dynamic_pointer_cast<elem_view_and>(view)){
         draw_and(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
-    }else if(view->t == elem_view::type::type_or){
+    }else if(std::dynamic_pointer_cast<elem_view_or>(view)){
         draw_or(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
-    }else if(view->t == elem_view::type::type_not){
+    }else if(std::dynamic_pointer_cast<elem_view_not>(view)){
         draw_not(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
-    }else if(view->t == elem_view::type::type_custom){
-        draw_custom(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
+    }else if(std::dynamic_pointer_cast<elem_view_meta>(view)){
+        draw_meta(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
     }else{
         QRectF rect(this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
         pnt.drawRect(rect);
@@ -203,11 +207,12 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     }
     pnt.end();
 
-    if(view->t == elem_view::type::type_in || view->t == elem_view::type::type_out) {
-        auto bit_val = (view->t == elem_view::type::type_in)?
+    if(std::dynamic_pointer_cast<elem_view_gate>(view)){
+        auto bit_val = (std::dynamic_pointer_cast<elem_view_in>(view))?
             sim.get_in_value(view->id, 0):
             sim.get_out_value(view->id, 0);
         QString txt;
+        txt.reserve(bit_val.size());
         for(const auto &bit:bit_val){
             txt.append(bit?"1":"0");
         }
@@ -326,6 +331,23 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
     }
 }
 
+void sim_interface::dive_into_meta(std::shared_ptr<elem_view_meta> value){
+    glue.set_root(value);
+    update();
+}
+void sim_interface::set_out_value(std::shared_ptr<elem_view_out> value){
+    int input = QInputDialog::getInt(this, "input devimal value", "input decimal value to pass");
+    auto bits = bits::to_bits(input);
+    auto out_width = sim.get_out_width(view->id);
+    if(bits.size() > out_width){
+        //TODO:warning
+        bits.erase(bits.begin()+out_width, bits.end());
+    }else if(bits.size() < out_width){
+        bits.resize(out_width);
+    }
+    sim.set_out_value(this->view->id, bits);
+}
+
 void sim_interface::mousePressEvent(QMouseEvent *e){
     this->mouse_pos_prev = e->pos();
     auto x = e->x();
@@ -353,18 +375,15 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
         auto items = glue.find_views(map_x, map_y);
         if(!items.empty()){
             if(this->view == items.front() && mode == mode::select){
-                if(this->view->t == elem_view::type::type_out){
-                    int input = QInputDialog::getInt(this, "input devimal value", "input decimal value to pass");
-                    auto bits = bits::to_bits(input);
-                    auto out_width = sim.get_out_width(view->id);
-                    if(bits.size() > out_width){
-                        //TODO:warning
-                        bits.erase(bits.begin()+out_width, bits.end());
-                    }else if(bits.size() < out_width){
-                        bits.resize(out_width);
-                    }
-                    sim.set_out_value(this->view->id, bits);
+                auto cast_out = std::dynamic_pointer_cast<elem_view_out>(view);
+                if(cast_out){
+                    set_out_value(cast_out);
                     try_tick();
+                    return;
+                }
+                auto cast_meta = std::dynamic_pointer_cast<elem_view_meta>(view);
+                if(cast_meta){
+                    dive_into_meta(cast_meta);
                     return;
                 }
             }else{
@@ -490,7 +509,9 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
 
 void sim_interface::keyReleaseEvent(QKeyEvent* e){
     auto it = std::find(pressed_keys.begin(), pressed_keys.end(), e->key());
-    this->pressed_keys.erase(it);
+    if(it != pressed_keys.end()){
+        this->pressed_keys.erase(it);
+    }
 }
 
 void sim_interface::paintEvent(QPaintEvent *e) {
@@ -522,13 +543,11 @@ void sim_interface::paintEvent(QPaintEvent *e) {
 void sim_interface::slot_propery_changed(const prop_pair* prop){
     if(this->view && !prop->get_line_edit()->text().isEmpty()){
         prop->set_view_value(this->view);
-        if((view->t == elem_view::type::type_in ||
-            view->t == elem_view::type::type_out) &&
-            prop->name() == "bit_w")
-        {
-            sim.set_gate_width(view->id, view->bit_width);
-            auto func = [this](std::shared_ptr<gate_view> gt){
-                gt->bit_width = view->bit_width;
+        auto gate_cast = std::dynamic_pointer_cast<elem_view_gate>(view);
+        if(gate_cast && prop->name() == "bit_w"){
+            sim.set_gate_width(view->id, gate_cast->bit_width);
+            auto func = [this, &gate_cast](std::shared_ptr<gate_view> gt){
+                gt->bit_width = gate_cast->bit_width;
                 for(auto &cn:gt->conn){
                     bool prev = cn->valid;
                     cn->check_valid();
@@ -570,4 +589,7 @@ void sim_interface::add_elem_in(){
 }
 void sim_interface::add_elem_out(){
     create_elem<elem_out>("out");
+}
+void sim_interface::add_elem_meta(){
+    create_elem<elem_meta>("custom");
 }
