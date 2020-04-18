@@ -3,9 +3,11 @@
 #include <memory>
 #include "element.h"
 
+class sim;
 class elem_meta:public element{
 protected:
-    std::vector<std::unique_ptr<element>> elements;
+friend class sim;
+    std::vector<std::shared_ptr<element>> elements;
 public:
     elem_meta(const std::string &name)
         :element(name),
@@ -14,26 +16,25 @@ public:
 
     void process(){
         for(auto &el:elements){
+            el->reset_processed();
+        }
+        for(auto &el:elements){
             el->process();
         }
     }
 
     auto get_sub_elements()const{
-        std::vector<std::reference_wrapper<const element>> result;
-        result.reserve(elements.size());
-        std::transform(elements.begin(), elements.end(), std::back_inserter(result),
-            [](const auto &el){
-                return std::cref(*el);
-            });
-        return result;
+        return elements;
     }
-    auto get_sub_elements(){
-        std::vector<std::reference_wrapper<element>> result;
-        result.reserve(elements.size());
-        std::transform(elements.begin(), elements.end(), std::back_inserter(result),
-            [](const auto &el){
-                return std::ref(*el);
-            });
-        return result;
+
+    void add_element(std::shared_ptr<element> &&el){
+        elements.emplace_back(std::move(el));
+    }
+
+    void del_element(std::shared_ptr<element> el){
+        auto it = std::find(elements.begin(), elements.end(), el);
+        if(it != elements.end()){
+            elements.erase(it);
+        }
     }
 };

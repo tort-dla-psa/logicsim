@@ -19,7 +19,11 @@ public:
     virtual ~elem_and(){}
 
     void process()override{
+        if(get_processed()){
+            return;
+        }
         out1->pass_value({in1->get_value(0) && in2->get_value(0)});
+        this->processed = true;
     }
 };
 
@@ -41,7 +45,11 @@ public:
     virtual ~elem_or(){}
 
     void process()override{
+        if(get_processed()){
+            return;
+        }
         out1->pass_value({in1->get_value(0) || in2->get_value(0)});
+        this->processed = true;
     }
 };
 
@@ -61,7 +69,11 @@ public:
     virtual ~elem_not(){}
 
     void process()override{
+        if(get_processed()){
+            return;
+        }
         out1->pass_value({!in1->get_value(0)});
+        this->processed = true;
     }
 };
 

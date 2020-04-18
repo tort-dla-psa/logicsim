@@ -8,8 +8,9 @@
 
 class sim{
 private:
-    std::vector<std::shared_ptr<element>> elements;
+    std::unique_ptr<elem_meta> root;
     auto find_by_id(const size_t &id)const{
+        auto &elements = root->elements;
         auto el = std::find_if(elements.begin(), elements.end(),
             [&id](const auto &el){
                 return id == el->get_id();
@@ -23,6 +24,7 @@ private:
         return el;
     }
     auto find_gate_by_id(const size_t &id)const{
+        auto &elements = root->elements;
         for(auto &el:elements){
             auto cast = std::dynamic_pointer_cast<gate>(el);
             if(cast){
@@ -50,13 +52,16 @@ private:
         return out;
     }
 public:
+    sim(){
+        root = std::make_unique<elem_meta>("root");
+    }
     auto get_sub_elements(const size_t &id)const{
         const auto meta = find_type_by_id<elem_meta>(id);
         auto elems = meta->get_sub_elements();
         std::vector<size_t> ids;
         std::transform(elems.begin(), elems.end(), std::back_inserter(ids),
             [](const auto el){
-                return el.get().get_id();
+                return el->get_id();
         });
         return ids;
     }
@@ -64,21 +69,23 @@ public:
         return *find_by_id(id);
     }
     void delete_element(const size_t &id){
-        elements.erase(find_by_id(id));
+        auto el_it = find_by_id(id);
+        auto &elements = root->elements;
+        elements.erase(el_it);
     }
-    void add_element(std::unique_ptr<element> &&el){
+    void add_element(std::shared_ptr<element> &&el){
+        auto &elements = root->elements;
         elements.emplace_back(std::move(el));
     }
     template<class T, typename ... Args>
     size_t create_element(Args... args){
         const auto el = std::make_shared<T>(args...);
+        auto &elements = root->elements;
         elements.emplace_back(el);
         return el->T::get_id();
     }
     void start(){
-        for(auto &el:elements){
-            el->process();
-        }
+        root->process();
     }
     void set_out_value(const size_t &id, const std::vector<bool> &val){
         auto el = find_type_by_id<elem_out>(id);
@@ -144,6 +151,7 @@ public:
         throw std::runtime_error(mes);
     }
     void connect_gates(const size_t &id1, const size_t &id2){
+        auto &elements = root->elements;
         std::shared_ptr<gate> gt1, gt2;
         for(auto it = elements.begin(); it < elements.end(); it++){
             auto &gates = (*it)->access_gates();

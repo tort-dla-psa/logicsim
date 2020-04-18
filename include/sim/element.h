@@ -10,13 +10,23 @@ protected:
     std::vector<std::shared_ptr<gate_in>> ins;
     std::vector<std::shared_ptr<gate_out>> outs;
     std::vector<std::shared_ptr<gate>> gates;
+
+    bool processed;
 public:
     element(const std::string &name)
         :nameable(name)
-    {}
+    {
+        reset_processed();
+    }
     virtual ~element(){}
     virtual void process()=0;
 
+    bool get_processed(){
+        return processed;
+    }
+    void reset_processed(){
+        processed = false;
+    }
     auto& access_gates(){
         return gates;
     }
