@@ -87,10 +87,15 @@ struct elem_view_meta:elem_view{
 
 class sim_ui_glue{
 private:
-    std::vector<std::shared_ptr<elem_view>> views;
-    sim_ui_glue(){};
+    sim_ui_glue(){
+        this->global_root = std::make_shared<elem_view_meta>();
+        this->global_root->id = 0;
+        this->global_root->name = "root";
+        this->root = global_root;
+    };
 
     auto prv_find_view_impl(const size_t &id)const{
+        auto &views = root->elems;
         auto it = std::find_if(views.cbegin(), views.cend(),
             [&id](const auto &v){
                 return v->id == id;
@@ -127,6 +132,7 @@ public:
     }
 
     auto find_view(const size_t &id){
+        auto &views = root->elems;
         auto const_it = prv_find_view_impl(id);
         auto dist = std::distance(views.cbegin(), const_it);
         return views.begin()+dist;
@@ -136,6 +142,7 @@ public:
     }
 
     auto find_views(const std::function<bool(const std::shared_ptr<elem_view>&)> &predicate)const{
+        auto &views = root->elems;
         std::vector<std::shared_ptr<elem_view>> result;
         std::copy_if(views.begin(), views.end(), std::back_inserter(result), predicate);
         return result;
@@ -165,10 +172,12 @@ public:
     }
 
     const auto& access_views()const{
+        auto &views = root->elems;
         return views;
     }
 
     void add_view(const std::shared_ptr<elem_view> &view){
+        auto &views = root->elems;
         try{
             auto it = find_view(view->id);
             *it = view;
@@ -178,6 +187,7 @@ public:
     }
 
     void del_view(const size_t &id){
+        auto &views = root->elems;
         auto it = find_view(id);
         auto el = *it;
         for(auto &gt_in:el->gates_in){
@@ -229,6 +239,7 @@ public:
     }
 
     auto get_gates(int x, int y)const{
+        auto &views = root->elems;
         std::vector<std::shared_ptr<gate_view>> gates;
         auto predicate = [](auto gate, int x_, int y_){
             return gate->x <= x_ &&
@@ -236,7 +247,7 @@ public:
                 gate->x+gate->w > x_ &&
                 gate->y+gate->h > y_;
         };
-        for(auto &view:this->views){
+        for(auto &view:views){
             int x_ =  x - view->x;
             int y_ =  y - view->y;
             auto &gates_in = view->gates_in;
