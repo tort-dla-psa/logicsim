@@ -66,7 +66,7 @@ void sim_interface::place_gates_in(std::shared_ptr<elem_view> &view,
             gt->id = elem->get_in(i)->get_id();
             gt->name = elem->get_in(i)->get_name();
         }
-        gt->bit_width = sim.get_gate_width(gt->id);
+        gt->bit_width = sim.get_gate_width(gt_->parent->id, gt->id);
         view->gates_in.emplace_back(gt);
     }
 }
@@ -96,7 +96,7 @@ void sim_interface::place_gates_out(std::shared_ptr<elem_view> &view,
             gt->id = elem->get_out(i)->get_id();
             gt->name = elem->get_in(i)->get_name();
         }
-        gt->bit_width = sim.get_gate_width(gt->id);
+        gt->bit_width = sim.get_gate_width(gt_->parent->id, gt->id);
         view->gates_out.emplace_back(gt);
     }
 }
@@ -208,9 +208,7 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     pnt.end();
 
     if(std::dynamic_pointer_cast<elem_view_gate>(view)){
-        auto bit_val = (std::dynamic_pointer_cast<elem_view_in>(view))?
-            sim.get_in_value(view->id, 0):
-            sim.get_out_value(view->id, 0);
+        auto bit_val = sim.get_gate_value(view->id, 0);
         QString txt;
         txt.reserve(bit_val.size());
         for(const auto &bit:bit_val){
@@ -260,24 +258,96 @@ void sim_interface::try_tick(){
 }
 
 void sim_interface::delete_item_cm(){
-    auto items = glue.find_views(cm_pos.x(), cm_pos.y());
-    glue.del_view(items.front()->id);
-    sim.delete_element(items.front()->id);
+    glue.del_view(this->view->id);
+    sim.delete_element(this->view->id);
+    this->view = nullptr;
+    emit element_selected(nullptr);
     update();
 }
+void sim_interface::cut_item_cm(){
+    this->view->st = elem_view::state::cut;
+    update();
+}
+void sim_interface::delete_items_cm(){
+    for(auto el:selected_views){
+        glue.del_view(el->id);
+        sim.delete_element(el->id);
+        if(el == this->view){
+            this->view = nullptr;
+            emit element_selected(nullptr);
+        }
+    }
+    update();
+}
+void sim_interface::cut_items_cm(){
+    for(auto el:selected_views){
+        el->st == elem_view::state::cut;
+    }
+    update();
+}
+void sim_interface::go_up_cm(){
+    auto root = glue.get_root();
+    std::shared_ptr<elem_view> view = root;
+    place_gates_in(view, sim.get_element(root->id));
+    place_gates_out(view, sim.get_element(root->id));
+    if(root->parent){
+        auto meta_cast = std::dynamic_pointer_cast<elem_view_meta>(root->parent);
+        dive_into_meta(meta_cast);
+    }
+}
 
-void sim_interface::showContextMenu(const QPoint &p){
-    QMenu contextMenu(tr("Menu"), this);
+void sim_interface::show_menu_for_none(const QPoint &p){
+    QMenu contextMenu(tr("Menu for space"), this);
     this->cm_pos = p;
 
-    auto items = glue.find_views(p.x(), p.y());
-    QAction action1("Delete item", this);
-    action1.setDisabled(items.empty());
+    QAction action_up("Go Up", this);
 
-    action1.connect(&action1, SIGNAL(triggered()),
-        this, SLOT(delete_item_cm()));
-    contextMenu.addAction(&action1);
+    action_up.connect(&action_up, SIGNAL(triggered()),
+        this, SLOT(go_up_cm()));
+    action_up.setDisabled(!glue.root_is_not_global());
+    contextMenu.addAction(&action_up);
     contextMenu.exec(mapToGlobal(p));
+}
+void sim_interface::show_menu_for_element(const QPoint &p){
+    QMenu contextMenu(tr("Menu for element"), this);
+    this->cm_pos = p;
+
+    QAction action_del("Delete item", this);
+    QAction action_cut("Cut item", this);
+
+    action_del.connect(&action_del, SIGNAL(triggered()),
+        this, SLOT(delete_item_cm()));
+    action_cut.connect(&action_cut, SIGNAL(triggered()),
+        this, SLOT(cut_item_cm()));
+    contextMenu.addAction(&action_del);
+    contextMenu.addAction(&action_cut);
+    contextMenu.exec(mapToGlobal(p));
+}
+void sim_interface::show_menu_for_elements(const QPoint &p){
+    QMenu contextMenu(tr("Menu for elements"), this);
+    this->cm_pos = p;
+
+    QAction action_del("Delete items", this);
+    QAction action_cut("Cut items", this);
+
+    action_del.connect(&action_del, SIGNAL(triggered()),
+        this, SLOT(delete_items_cm()));
+    action_cut.connect(&action_cut, SIGNAL(triggered()),
+        this, SLOT(cut_items_cm()));
+    contextMenu.addAction(&action_del);
+    contextMenu.addAction(&action_cut);
+    contextMenu.exec(mapToGlobal(p));
+}
+void sim_interface::showContextMenu(const QPoint &p){
+    if(selected_views.size() != 0){
+        show_menu_for_elements(p);
+        return;
+    }
+    if(this->view && this->view->st == elem_view::state::selected){
+        show_menu_for_element(p);
+        return;
+    }
+    show_menu_for_none(p);
 }
 
 void sim_interface::mouseMoveEvent(QMouseEvent *e){
@@ -333,12 +403,16 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
 
 void sim_interface::dive_into_meta(std::shared_ptr<elem_view_meta> value){
     glue.set_root(value);
+    this->view = nullptr;
+    emit element_selected(nullptr);
+    this->selected_views.clear();
+    this->mode = mode::still;
     update();
 }
 void sim_interface::set_out_value(std::shared_ptr<elem_view_out> value){
     int input = QInputDialog::getInt(this, "input devimal value", "input decimal value to pass");
     auto bits = bits::to_bits(input);
-    auto out_width = sim.get_out_width(view->id);
+    auto out_width = sim.get_gate_width(view->id);
     if(bits.size() > out_width){
         //TODO:warning
         bits.erase(bits.begin()+out_width, bits.end());
@@ -469,6 +543,7 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
     bool down = std::find(beg, end, Qt::Key_Down) != end;
     bool plus = std::find(beg, end, Qt::Key_Equal) != end;
     bool minus = std::find(beg, end, Qt::Key_Minus) != end;
+    bool x = std::find(beg, end, Qt::Key_X) != end;
     if(this->view){
         if(ctrl && (left || right)){
             int cast = (int)view->dir;

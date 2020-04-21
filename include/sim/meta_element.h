@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include "element.h"
+#include "basic_elements.h"
 
 class sim;
 class elem_meta:public element{
@@ -28,7 +29,15 @@ public:
     }
 
     void add_element(std::shared_ptr<element> &&el){
-        elements.emplace_back(std::move(el));
+        auto gate_in = std::dynamic_pointer_cast<elem_in>(el);
+        if(gate_in){
+            this->ins.emplace_back(gate_in);
+        }
+        auto gate_out = std::dynamic_pointer_cast<elem_out>(el);
+        if(gate_out){
+            this->outs.emplace_back(gate_out);
+        }
+        elements.emplace_back(el);
     }
 
     void del_element(std::shared_ptr<element> el){

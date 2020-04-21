@@ -65,14 +65,18 @@ class sim_interface : public draw_widget {
             this->view->st = elem_view::state::normal;
         }
         this->mode = mode::create;
-        auto id = sim.create_element<Elem>(name);
-        auto elem = sim.get_element(id);
+        auto elem = sim.create_element<Elem>(name);
+        sim.add_element_into_meta(glue.get_root()->id, elem);
         this->view = elem_to_view(elem);
         this->view->st == elem_view::state::creating;
     }
 
     void set_out_value(std::shared_ptr<elem_view_out> view);
     void dive_into_meta(std::shared_ptr<elem_view_meta> view);
+
+    void show_menu_for_elements(const QPoint &p);
+    void show_menu_for_element(const QPoint &p);
+    void show_menu_for_none(const QPoint &p);
 public:
 	sim_interface(QWidget *parent = nullptr);
     virtual ~sim_interface();
@@ -92,8 +96,13 @@ public slots:
     void add_elem_meta();
 
     void slot_propery_changed(const prop_pair* prop);
-    void delete_item_cm();
     void showContextMenu(const QPoint &p);
+private slots:
+    void delete_item_cm();
+    void cut_item_cm();
+    void delete_items_cm();
+    void cut_items_cm();
+    void go_up_cm();
 signals:
     void element_selected(std::shared_ptr<elem_view> view);
     void element_changed(std::shared_ptr<elem_view> view);

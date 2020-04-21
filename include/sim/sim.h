@@ -7,42 +7,60 @@
 #include "basic_elements.h"
 
 class sim{
+    using elem_vec = std::vector<std::shared_ptr<element>>;
 private:
     std::unique_ptr<elem_meta> root;
+    elem_vec::const_iterator find_by_id(const elem_vec &elements, const size_t &id)const{
+        for(auto it = elements.cbegin(); it != elements.cend(); it++){
+            auto el = *it;
+            if(el->get_id() == id){
+                return it;
+            }
+            auto meta_cast = std::dynamic_pointer_cast<elem_meta>(el);
+            if(meta_cast){
+                return find_by_id(meta_cast->elements, id);
+            }
+        }
+        auto mes = "there's no element with id "+std::to_string(id)+
+            " in simulation";
+        throw std::runtime_error(mes);
+    }
     auto find_by_id(const size_t &id)const{
         auto &elements = root->elements;
-        auto el = std::find_if(elements.begin(), elements.end(),
-            [&id](const auto &el){
-                return id == el->get_id();
-            }
-        );
-        if(el == elements.end()){
-            auto mes = "there's no element with id "+std::to_string(id)+
-                " in simulation";
-            throw std::runtime_error(mes);
-        }
-        return el;
+        return find_by_id(elements, id);
     }
-    auto find_gate_by_id(const size_t &id)const{
-        auto &elements = root->elements;
-        for(auto &el:elements){
-            auto cast = std::dynamic_pointer_cast<gate>(el);
-            if(cast){
-                return cast;
+    std::shared_ptr<gate> find_gate_by_id(const elem_vec &elements, const size_t &id)const{
+        for(auto it = elements.cbegin(); it != elements.cend(); it++){
+            auto el = *it;
+            auto meta_cast = std::dynamic_pointer_cast<elem_meta>(el);
+            if(meta_cast){
+                return find_gate_by_id(meta_cast->elements, id);
             }
             for(auto &gt_:el->access_gates()){
                 if(gt_->get_id() == id){
                     return gt_;
                 }
             }
+            auto in_cast = std::dynamic_pointer_cast<elem_in>(el);
+            if(in_cast && in_cast->get_in_id() == id){
+                return in_cast;
+            }
+            auto out_cast = std::dynamic_pointer_cast<elem_out>(el);
+            if(out_cast && out_cast->get_out_id() == id){
+                return out_cast;
+            }
         }
         auto mes = "there's no gate with id "+std::to_string(id)+
             " in simulation";
         throw std::runtime_error(mes);
     }
+    auto find_gate_by_id(const size_t &id)const{
+        auto &elements = root->elements;
+        return find_gate_by_id(elements, id);
+    }
     template<class T>
-    auto find_type_by_id(const size_t &id)const{
-        auto el = *find_by_id(id);
+    auto find_type_by_id(const elem_vec &elements, const size_t &id)const{
+        auto el = *find_by_id(elements, id);
         auto out = std::dynamic_pointer_cast<T>(el);
         if(!out){
             auto mes = "element with id "+std::to_string(id)
@@ -50,6 +68,11 @@ private:
             throw std::runtime_error(mes);
         }
         return out;
+    }
+    template<class T>
+    auto find_type_by_id(const size_t &id)const{
+        auto &elements = root->elements;
+        return find_type_by_id<T>(elements, id);
     }
 public:
     sim(){
@@ -73,16 +96,21 @@ public:
         auto &elements = root->elements;
         elements.erase(el_it);
     }
-    void add_element(std::shared_ptr<element> &&el){
-        auto &elements = root->elements;
-        elements.emplace_back(std::move(el));
+    void add_element_into_meta(const size_t &id, std::shared_ptr<element> el){
+        if(id == 0){
+            root->add_element(std::move(el));
+        }else{
+            auto meta = find_type_by_id<elem_meta>(id);
+            meta->add_element(std::move(el));
+        }
     }
-    template<class T, typename ... Args>
-    size_t create_element(Args... args){
-        const auto el = std::make_shared<T>(args...);
+    void add_element(std::shared_ptr<element> el){
         auto &elements = root->elements;
         elements.emplace_back(el);
-        return el->T::get_id();
+    }
+    template<class T, typename ... Args>
+    auto create_element(Args... args){
+        return std::make_shared<T>(args...);
     }
     void start(){
         root->process();
@@ -91,41 +119,19 @@ public:
         auto el = find_type_by_id<elem_out>(id);
         el->set_values(val);
     }
-    auto get_out_value(const size_t &id)const{
-        auto el = find_type_by_id<elem_out>(id);
-        return el->get_values();
-    }
-    size_t get_out_width(const size_t &id)const{
-        auto el = find_type_by_id<elem_out>(id);
-        return el->get_width();
-    }
-    auto get_in_value(const size_t &id, const size_t &place)const{
+    auto get_gate_value(const size_t &id, const size_t &place)const{
         auto el = *find_by_id(id);
-        auto in_cast = std::dynamic_pointer_cast<gate_in>(el);
-        if(in_cast){
+        auto cast = std::dynamic_pointer_cast<gate>(el);
+        if(cast){
             if(place == 0){
-                return in_cast->get_values();
+                return cast->get_values();
             }else{
-                auto mes = "asked value of input number "+std::to_string(place)+
+                auto mes = "asked value of gate number "+std::to_string(place)+
                     ", which is illegal";
                 throw std::runtime_error(mes);
             }
         }
         return el->get_in(place)->get_values();
-    }
-    auto get_out_value(const size_t &id, const size_t &place)const{
-        auto el = *find_by_id(id);
-        auto out_cast = std::dynamic_pointer_cast<gate_out>(el);
-        if(out_cast){
-            if(place == 0){
-                return out_cast->get_values();
-            }else{
-                auto mes = "asked value of output number "+std::to_string(place)+
-                    ", which is illegal";
-                throw std::runtime_error(mes);
-            }
-        }
-        return el->get_out(place)->get_values();
     }
     void set_gate_width(const size_t &id, const size_t &width){
         auto el = *find_by_id(id);
@@ -142,13 +148,24 @@ public:
         auto mes = "ID "+std::to_string(id)+" is not a gate, setting bit_width is illegal";
         throw std::runtime_error(mes);
     }
-    auto get_gate_width(const size_t &id)const{
-        auto gt = find_gate_by_id(id);
+    auto get_gate_width(const elem_vec &elems, const size_t &id)const{
+        auto gt = find_gate_by_id(elems, id);
         if(gt){
             return gt->get_width();
         }
         auto mes = "ID "+std::to_string(id)+" is not a gate, getting bit_width is illegal";
         throw std::runtime_error(mes);
+    }
+    auto get_gate_width(const size_t &id_parent, const size_t &id)const{
+        auto parent = *find_by_id(id_parent);
+        if(id_parent == id){
+            return std::dynamic_pointer_cast<gate>(parent)->get_width();
+        }
+        return get_gate_width({parent}, id);
+    }
+    auto get_gate_width(const size_t &id)const{
+        auto &elements = root->elements;
+        return get_gate_width(elements, id);
     }
     void connect_gates(const size_t &id1, const size_t &id2){
         auto &elements = root->elements;

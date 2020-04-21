@@ -9,6 +9,7 @@ struct gate_view_out;
 struct gate_connection;
 
 struct view{
+    std::shared_ptr<elem_view> parent;
     std::string name;
     size_t id;
     long x, y, w, h;
@@ -29,7 +30,6 @@ struct gate_view:view{
         out
     }dir;
     size_t bit_width;
-    std::shared_ptr<elem_view> parent;
     std::vector<std::shared_ptr<gate_connection>> conn;
 
     gate_view(){}
@@ -76,11 +76,9 @@ struct elem_view:view{
 struct elem_view_and:elem_view{};
 struct elem_view_or:elem_view{};
 struct elem_view_not:elem_view{};
-struct elem_view_gate:elem_view{
-    long bit_width;
-};
-struct elem_view_in:elem_view_gate{};
-struct elem_view_out:elem_view_gate{};
+struct elem_view_gate:elem_view, gate_view{};
+struct elem_view_in:elem_view_gate, gate_view_in{};
+struct elem_view_out:elem_view_gate, gate_view_out{};
 struct elem_view_meta:elem_view{
     std::vector<std::shared_ptr<elem_view>> elems;
 };
@@ -116,13 +114,19 @@ public:
 
     void set_root(const std::shared_ptr<elem_view> view){
         auto cast = std::dynamic_pointer_cast<elem_view_meta>(view);
-        if(cast || view != nullptr){
+        if(!cast && view != nullptr){
             auto mes = "setting root not to element that is not meta_element";
             throw std::runtime_error(mes);
         }
         this->root = cast;
+        if(!this->root){
+            this->root = global_root;
+        }
     }
 
+    bool root_is_not_global(){
+        return root != global_root;
+    }
     void go_to_global_root(){
         set_root(global_root);
     }
@@ -183,6 +187,17 @@ public:
             *it = view;
         }catch(std::runtime_error &e){ //not found
             views.emplace_back(view);
+            view->parent = root;
+            auto gate_in = std::dynamic_pointer_cast<elem_view_in>(view);
+            if(gate_in){
+                root->gates_in.emplace_back(gate_in);
+                return;
+            }
+            auto gate_out = std::dynamic_pointer_cast<elem_view_out>(view);
+            if(gate_out){
+                root->gates_out.emplace_back(gate_out);
+                return;
+            }
         }
     }
 
@@ -193,7 +208,6 @@ public:
         for(auto &gt_in:el->gates_in){
             for(auto &gt_in_conn:gt_in->conn){
                 auto out = gt_in_conn->gate_out;
-                //std::remove(out->conn.begin(), out->conn.end(), gt_in_conn);
                 auto it = std::find(out->conn.begin(), out->conn.end(), gt_in_conn);
                 out->conn.erase(it);
             }
@@ -203,7 +217,6 @@ public:
         for(auto &gt_out:el->gates_out){
             for(auto &gt_out_conn:gt_out->conn){
                 auto in = gt_out_conn->gate_in;
-                //std::remove(in->conn.begin(), in->conn.end(), gt_out_conn);
                 auto it = std::find(in->conn.begin(), in->conn.end(), gt_out_conn);
                 in->conn.erase(it);
             }
