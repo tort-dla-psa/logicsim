@@ -239,12 +239,12 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     for(auto &gate:view->gates_in){
         pnt.drawRect(gate->x*cam.zoom, gate->y*cam.zoom,
             gate->w*cam.zoom, gate->h*cam.zoom);
-        pnt.drawText(gate->x, gate->y, QString::number(gate->id));
+        //pnt.drawText(gate->x, gate->y, QString::number(gate->id));
     }
     for(auto &gate:view->gates_out){
         pnt.drawRect(gate->x*cam.zoom, gate->y*cam.zoom,
             gate->w*cam.zoom, gate->h*cam.zoom);
-        pnt.drawText(gate->x, gate->y, QString::number(gate->id));
+        //pnt.drawText(gate->x, gate->y, QString::number(gate->id));
     }
     pnt.end();
 
@@ -257,7 +257,7 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
             txt.append(bit?"1":"0");
         }
         draw_text(draw_x, draw_y, txt);
-        draw_text(draw_x, draw_y-12, QString::number(view->id));
+        //draw_text(draw_x, draw_y-12, QString::number(view->id));
     }
     draw_widget::draw_image(draw_x, draw_y, img);
     QPen pen_valid(Qt::black);

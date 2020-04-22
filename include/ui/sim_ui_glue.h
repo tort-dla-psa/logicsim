@@ -192,16 +192,6 @@ public:
         }catch(std::runtime_error &e){ //not found
             views.emplace_back(view);
             view->parent = root;
-            auto in_cast = std::dynamic_pointer_cast<elem_view_in>(view);
-            if(in_cast){
-                root->gates_in.emplace_back(in_cast->gt_outer);
-                return;
-            }
-            auto out_cast = std::dynamic_pointer_cast<elem_view_out>(view);
-            if(out_cast){
-                root->gates_out.emplace_back(out_cast->gt_outer);
-                return;
-            }
         }
     }
 
