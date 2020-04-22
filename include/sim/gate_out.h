@@ -6,7 +6,10 @@
 #include "gate.h"
 
 class gate_out:public gate{
-    std::vector<std::shared_ptr<gate_in>> ins;
+public:
+    using ins_vec = std::vector<std::shared_ptr<gate_in>>;
+private:
+    ins_vec ins;
 public:
     gate_out(const std::string &name, const size_t &width=1)
         :gate(name, width),

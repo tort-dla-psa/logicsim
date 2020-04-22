@@ -25,7 +25,9 @@ class sim_interface : public draw_widget {
     std::shared_ptr<elem_view> view;
     std::vector<std::shared_ptr<elem_view>> selected_views;
     std::shared_ptr<gate_view> gate_view_1, gate_view_2;
-	class sim sim;
+
+    std::unique_ptr<elem_meta> sim_root;
+	//class sim sim;
     size_t w=1000, h=1000,
         default_elem_width=50,
         default_elem_height=50,
@@ -43,10 +45,14 @@ class sim_interface : public draw_widget {
     std::vector<int> pressed_keys;
     QPoint cm_pos;
 
-    std::shared_ptr<elem_view> elem_to_view(const std::shared_ptr<element> &elem);
+    elem_meta::elem_vec::const_iterator find_by_id(const size_t &id)const;
+
+    void connect_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2);
+
+    std::shared_ptr<elem_view> elem_to_view(const std::unique_ptr<element> &elem);
     std::shared_ptr<elem_view> elem_to_view(size_t id);
-    void place_gates_in(std::shared_ptr<elem_view> &view, const std::shared_ptr<element> &elem);
-    void place_gates_out(std::shared_ptr<elem_view> &view, const std::shared_ptr<element> &elem);
+    void place_gates_in(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
+    void place_gates_out(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
 
     void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
     void rotate_view(std::shared_ptr<elem_view> &view);
@@ -65,9 +71,9 @@ class sim_interface : public draw_widget {
             this->view->st = elem_view::state::normal;
         }
         this->mode = mode::create;
-        auto elem = sim.create_element<Elem>(name);
-        sim.add_element_into_meta(glue.get_root()->id, elem);
-        this->view = elem_to_view(elem);
+        auto elem = std::make_unique<Elem>(name);
+        auto &ref = this->sim_root->emplace_back(std::move(elem));
+        this->view = elem_to_view(ref);
         this->view->st == elem_view::state::creating;
     }
 

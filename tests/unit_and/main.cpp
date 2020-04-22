@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[]){
     assert(argc == 3);
-    class sim sim;
+    /*class sim sim;
     bool arg1 = std::atoi(argv[1]);
     bool arg2 = std::atoi(argv[2]);
     bool referense = arg1 && arg2;
@@ -14,4 +14,5 @@ int main(int argc, char* argv[]){
     _and.process();
     bool result = _and.get_out(0)->get_value(0);
     assert(referense == result);
+    */
 }

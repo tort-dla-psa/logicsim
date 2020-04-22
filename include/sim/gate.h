@@ -15,24 +15,24 @@ public:
     }
     virtual ~gate(){}
 
-    void set_width(const size_t &width){
+    virtual void set_width(const size_t &width){
         this->width = width;
         values.resize(width);
     }
-    const size_t& get_width()const{
+    virtual const size_t& get_width()const{
         return width;
     }
-    bool get_value(size_t place)const{
+    virtual bool get_value(const size_t &place)const{
         return values.at(place);
     }
-    const std::vector<bool>& get_values()const{
+    virtual const std::vector<bool>& get_values()const{
         return values;
     }
-    std::vector<bool> get_values(){
+    virtual std::vector<bool> get_values(){
         return values;
     }
 
-    void set_values(const std::vector<bool> &values){
+    virtual void set_values(const std::vector<bool> &values){
         if(values.size() != this->width){
             auto mes = "attempt to assign value of width "+std::to_string(values.size())+
                 " to a gate "+get_name()+" with width "+std::to_string(width);
