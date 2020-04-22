@@ -1,9 +1,15 @@
 #include "prop_pair.h"
 #include "sim_ui_glue.h"
 
-prop_pair::prop_pair(QString name, QString lbl_txt, QWidget *parent)
+prop_pair::prop_pair(const QString &name, const QString &lbl_txt, QWidget *parent):
+    prop_pair(name, lbl_txt, "", parent)
+{}
+
+prop_pair::prop_pair(const QString &name, const QString &lbl_txt,
+    const QString &default_value, QWidget *parent)
     :QWidget(parent),
-    m_name(name)
+    m_name(name),
+    default_value(default_value)
 {
     this->layout = new QHBoxLayout(this);
     this->lbl = new QLabel(this);
@@ -19,7 +25,10 @@ prop_pair::~prop_pair(){
     delete this->lbl;
     delete this->layout;
 }
-QString prop_pair::name()const{
+void prop_pair::reset(){
+    this->le->setText(default_value);
+}
+const QString& prop_pair::name()const{
     return m_name;
 }
 void prop_pair::set_view_value(std::shared_ptr<elem_view> view)const{

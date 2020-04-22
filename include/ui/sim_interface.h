@@ -25,7 +25,9 @@ class sim_interface : public draw_widget {
     std::shared_ptr<elem_view> view;
     std::vector<std::shared_ptr<elem_view>> selected_views;
     std::shared_ptr<gate_view> gate_view_1, gate_view_2;
-	class sim sim;
+
+    std::unique_ptr<elem_meta> sim_root;
+	//class sim sim;
     size_t w=1000, h=1000,
         default_elem_width=50,
         default_elem_height=50,
@@ -43,21 +45,22 @@ class sim_interface : public draw_widget {
     std::vector<int> pressed_keys;
     QPoint cm_pos;
 
-    std::shared_ptr<elem_view> elem_to_view(const std::shared_ptr<element> &elem);
+    elem_meta::elem_vec::const_iterator find_by_id(const size_t &id)const;
+
+    void connect_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2);
+
+    std::shared_ptr<elem_view> elem_to_view(const std::unique_ptr<element> &elem);
     std::shared_ptr<elem_view> elem_to_view(size_t id);
-    elem_view::type class_to_type(const std::shared_ptr<element> &elem);
-    void place_gates_in(std::shared_ptr<elem_view> &view, const std::shared_ptr<element> &elem);
-    void place_gates_out(std::shared_ptr<elem_view> &view, const std::shared_ptr<element> &elem);
+    void place_gates_in(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
+    void place_gates_out(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
 
     void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
     void rotate_view(std::shared_ptr<elem_view> &view);
 
-    size_t vec_to_val(const std::vector<bool> &vec);
-    std::vector<bool> val_to_vec(const size_t &vec);
     void draw_and(QPainter &p, int x, int y, int w, int h);
     void draw_or(QPainter &p, int x, int y, int w, int h);
     void draw_not(QPainter &p, int x, int y, int w, int h);
-    void draw_custom(QPainter &p, int x, int y, int w, int h);
+    void draw_meta(QPainter &p, int x, int y, int w, int h);
     void draw_out(QPainter &p, int x, int y, int w, int h);
     void draw_in(QPainter &p, int x, int y, int w, int h);
     void try_tick();
@@ -68,10 +71,18 @@ class sim_interface : public draw_widget {
             this->view->st = elem_view::state::normal;
         }
         this->mode = mode::create;
-        auto id = sim.create_element<Elem>(name);
-        this->view = elem_to_view(id);
+        auto elem = std::make_unique<Elem>(name);
+        auto &ref = this->sim_root->emplace_back(std::move(elem));
+        this->view = elem_to_view(ref);
         this->view->st == elem_view::state::creating;
     }
+
+    void set_out_value(std::shared_ptr<elem_view_out> view);
+    void dive_into_meta(std::shared_ptr<elem_view_meta> view);
+
+    void show_menu_for_elements(const QPoint &p);
+    void show_menu_for_element(const QPoint &p);
+    void show_menu_for_none(const QPoint &p);
 public:
 	sim_interface(QWidget *parent = nullptr);
     virtual ~sim_interface();
@@ -88,10 +99,16 @@ public slots:
     void add_elem_not();
     void add_elem_in();
     void add_elem_out();
+    void add_elem_meta();
 
     void slot_propery_changed(const prop_pair* prop);
-    void delete_item_cm();
     void showContextMenu(const QPoint &p);
+private slots:
+    void delete_item_cm();
+    void cut_item_cm();
+    void delete_items_cm();
+    void cut_items_cm();
+    void go_up_cm();
 signals:
     void element_selected(std::shared_ptr<elem_view> view);
     void element_changed(std::shared_ptr<elem_view> view);

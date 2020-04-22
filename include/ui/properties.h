@@ -30,6 +30,7 @@ signals:
 	void property_changed(const prop_pair* prop);
 public slots:
 	void slot_element_selected(std::shared_ptr<elem_view> view);
+	void reset();
 private slots:
 	void slot_prop_changed();
 };
