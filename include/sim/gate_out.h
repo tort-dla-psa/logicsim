@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "gate_in.h"
 #include "gate.h"
+#include "helpers.h"
 
 class gate_out:public gate{
 public:
@@ -15,11 +16,14 @@ public:
         :gate(name, width),
         nameable(name)
     {}
-    virtual ~gate_out(){}
+    ~gate_out(){}
 
     void pass_value()const{
+        auto &val = this->get_values();
         for(auto &in:ins){
-            in->set_values(this->get_values());
+            log("passing value "+sim_helpers::to_str(val)+
+                " to gate id:"+std::to_string(in->get_id()));
+            in->set_values(val);
         }
     }
     void pass_value(const std::vector<bool> &val){

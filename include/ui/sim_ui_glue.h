@@ -76,9 +76,13 @@ struct elem_view:view{
 struct elem_view_and:elem_view{};
 struct elem_view_or:elem_view{};
 struct elem_view_not:elem_view{};
-struct elem_view_gate:elem_view, gate_view{};
-struct elem_view_in:elem_view_gate, gate_view_in{};
-struct elem_view_out:elem_view_gate, gate_view_out{};
+struct elem_view_gate:elem_view{};
+struct elem_view_in:elem_view_gate{
+    std::shared_ptr<gate_view_in> gt_outer;
+};
+struct elem_view_out:elem_view_gate{
+    std::shared_ptr<gate_view_out> gt_outer;
+};
 struct elem_view_meta:elem_view{
     std::vector<std::shared_ptr<elem_view>> elems;
 };
@@ -188,16 +192,6 @@ public:
         }catch(std::runtime_error &e){ //not found
             views.emplace_back(view);
             view->parent = root;
-            auto gate_in = std::dynamic_pointer_cast<elem_view_in>(view);
-            if(gate_in){
-                root->gates_in.emplace_back(gate_in);
-                return;
-            }
-            auto gate_out = std::dynamic_pointer_cast<elem_view_out>(view);
-            if(gate_out){
-                root->gates_out.emplace_back(gate_out);
-                return;
-            }
         }
     }
 

@@ -57,13 +57,27 @@ properties::properties(QWidget* parent)
 
     prop = props.emplace_back(new prop_pair("bit_w", "bits", this));
     prop->set_getter([](auto view){
-        auto cast = std::dynamic_pointer_cast<elem_view_gate>(view);
-        return QString::number(cast->bit_width);
+        auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
+        if(cast_in){
+            return QString::number(cast_in->gates_out.at(0)->bit_width);
+        }
+        auto cast_out = std::dynamic_pointer_cast<elem_view_out>(view);
+        if(cast_out){
+            return QString::number(cast_out->gates_in.at(0)->bit_width);
+        }
     }); 
     prop->set_setter([prop](auto view){
         auto le = prop->get_line_edit();
-        auto cast = std::dynamic_pointer_cast<elem_view_gate>(view);
-        cast->bit_width = le->text().toLong();
+        auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
+        if(cast_in){
+            cast_in->gates_out.at(0)->bit_width = le->text().toLong();
+            return;
+        }
+        auto cast_out = std::dynamic_pointer_cast<elem_view_out>(view);
+        if(cast_out){
+            cast_out->gates_in.at(0)->bit_width = le->text().toLong();
+            return;
+        }
     }); 
     prop->hide();
 
