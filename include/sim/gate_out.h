@@ -16,7 +16,7 @@ public:
         :gate(name, width),
         nameable(name)
     {}
-    virtual ~gate_out(){}
+    ~gate_out(){}
 
     void pass_value()const{
         auto &val = this->get_values();

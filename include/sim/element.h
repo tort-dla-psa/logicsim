@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 #include <memory>
-#include "gate_in.h"
 #include "gate_out.h"
+#include "gate_in.h"
 #include "nameable.h"
 
 class element:virtual public nameable{

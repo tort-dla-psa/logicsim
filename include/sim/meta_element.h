@@ -38,26 +38,29 @@ public:
         }
     }
 
-    virtual const std::unique_ptr<element>& find_element(const size_t id)const{
-        auto it = std::find_if(elements.begin(), elements.end(), 
-            [&id](auto &el){
-                return el->get_id() == id;
-            });
-        if(it == elements.end()){
-            throw std::out_of_range("no element with id "+std::to_string(id));
+    const std::unique_ptr<element>& find_element(const size_t &id)const{
+        for(auto it = elements.cbegin(); it != elements.cend(); it++){
+            auto el = it.base()->get();
+            if(el->get_id() == id){
+                return *it;
+            }
+            auto meta_cast = dynamic_cast<elem_meta*>(el);
+            if(meta_cast){
+                try{
+                    auto &recursive_result = meta_cast->find_element(id);
+                    return recursive_result;
+                }catch(std::out_of_range &e){
+                }
+            }
         }
-        return *it;
+        throw std::out_of_range("no element with id "+std::to_string(id));
+        return *elements.begin();
     }
 
-    virtual std::unique_ptr<element>& find_element(const size_t id){
-        auto it = std::find_if(elements.begin(), elements.end(), 
-            [&id](auto &el){
-                return el->get_id() == id;
-            });
-        if(it == elements.end()){
-            throw std::out_of_range("no element with id "+std::to_string(id));
-        }
-        return *it;
+    std::unique_ptr<element>& find_element(const size_t &id){
+        auto c_this = const_cast<const elem_meta*>(this);
+        auto &c_el = c_this->find_element(id);
+        return const_cast<std::unique_ptr<element>&>(c_el);
     }
 
     virtual std::shared_ptr<const gate> find_gate(const size_t &id)const override{
@@ -102,9 +105,11 @@ public:
         auto gate_in = dynamic_cast<elem_in*>(el_ptr);
         auto gate_out = dynamic_cast<elem_out*>(el_ptr);
         if(gate_in){
-            this->ins.emplace_back(gate_in->gt_outer);
+            auto outer = gate_in->gt_outer;
+            element::emplace_back(outer);
         }else if(gate_out){
-            this->outs.emplace_back(gate_out->gt_outer);
+            auto outer = gate_out->gt_outer;
+            element::emplace_back(outer);
         }
         return elements.emplace_back(std::move(el));
     }

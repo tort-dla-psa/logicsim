@@ -7,7 +7,8 @@ class elem_basic:public element{
     using element::emplace_back;
 public:
     elem_basic(const std::string &name)
-        :element(name)
+        :element(name),
+        nameable(name)
     {}
 };
 
@@ -52,7 +53,7 @@ public:
         element::emplace_back(in2);
         element::emplace_back(out1);
     }
-    virtual ~elem_or(){}
+    ~elem_or(){}
 
     void process()override{
         if(get_processed()){
@@ -76,7 +77,7 @@ public:
         element::emplace_back(in1);
         element::emplace_back(out1);
     }
-    virtual ~elem_not(){}
+    ~elem_not(){}
 
     void process()override{
         if(get_processed()){
@@ -112,8 +113,10 @@ protected:
     std::shared_ptr<Gt> gt;
     std::shared_ptr<Gt_outer> gt_outer;
 public:
+    using elem_basic::get_id;
     elem_gate(const std::string &name, const std::string &gate_name, const size_t &width=1)
         :elem_basic(name),
+        nameable(name),
         Gt(gate_name, width),
         Gt_outer(name+"_outer", width)
     {
@@ -179,14 +182,17 @@ public:
     }
 };
 
-class elem_in final :public elem_gate<gate_out, gate_in>{
+class elem_in final :public elem_gate<gate_out, gate_in_active<elem_in>>{
     using element::get_in;
     friend class elem_meta;
 public:
     elem_in(const std::string &name, const size_t &width=1)
         :elem_gate(name, name+"_in", width),
         nameable(name)
-    {}
+    {
+        auto cast = std::dynamic_pointer_cast<gate_in_active<elem_in>>(gt_outer);
+        cast->set_active(true);
+    }
     ~elem_in(){}
 
     void process()override{
