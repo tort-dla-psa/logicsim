@@ -25,7 +25,6 @@ public:
         this->set_name(name);
         this->id = id_assigner::get_instance().get_id();
     }
-    virtual ~nameable(){};
     virtual size_t get_id()const{
         return id;
     }

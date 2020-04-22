@@ -87,8 +87,8 @@ public:
     }
 };
 
-template<class Gt>
-class elem_gate:public elem_basic, public Gt{
+template<class Gt, class Gt_outer>
+class elem_gate:public elem_basic, public Gt, public Gt_outer{
     using element::get_outs_begin;
     using element::get_outs_rbegin;
     using element::get_outs_end;
@@ -110,12 +110,15 @@ class elem_gate:public elem_basic, public Gt{
 
 protected:
     std::shared_ptr<Gt> gt;
+    std::shared_ptr<Gt_outer> gt_outer;
 public:
     elem_gate(const std::string &name, const std::string &gate_name, const size_t &width=1)
         :elem_basic(name),
-        Gt(gate_name, width)
+        Gt(gate_name, width),
+        Gt_outer(name+"_outer", width)
     {
-        gt = std::make_shared<Gt>(gate_name, width);
+        gt = std::make_shared<Gt>(this->Gt::get_name(), width);
+        gt_outer = std::make_shared<Gt_outer>(this->Gt_outer::get_name(), width);
     }
 
     void set_width(const size_t &width)override         { gt->set_width(width); }
@@ -123,7 +126,6 @@ public:
     bool get_value(const size_t &place)const override   { return gt->get_value(place); }
     const std::vector<bool>& get_values()const override { return gt->get_values(); }
     std::vector<bool> get_values()override              { return gt->get_values(); }
-    void set_values(const std::vector<bool> &values)override{ gt->set_values(values); }
 
     std::shared_ptr<const gate> find_gate(const size_t &id)const override{
         if(gt->get_id() == id){
@@ -137,73 +139,78 @@ public:
         }
         return nullptr;
     }
-};
-class elem_out final :public elem_gate<gate_out>, std::enable_shared_from_this<gate_out>{
-public:
-    elem_out(const std::string &name, size_t width=1)
-        :elem_gate<gate_out>(name, name+"out_1", width),
-        nameable(name)
-    { }
-    virtual ~elem_out(){}
-
-    void process()override{
-        gt->pass_value();
-    }
-
-    size_t get_outs_size()const override{
-        return 1;
-    }
-
-    size_t get_out_id()const{
-        return gate_out::get_id();
-    }
-
-    std::shared_ptr<const gate_out> get_out(const size_t &place)const override{
-        if(place == 0){
-            return gt;
-        }
-        throw std::runtime_error("elem::get_out should not be called");
-        return nullptr;
-    }
-
-    std::shared_ptr<gate_out> get_out(const size_t &place)override{
-        auto c_this = const_cast<const elem_out*>(this);
-        auto c_gt = c_this->get_out(place);
-        return std::const_pointer_cast<gate_out>(c_gt);
+    size_t get_outer_id()const{
+        return gt_outer->get_id();
     }
 };
-
-class elem_in final :public elem_gate<gate_in>, std::enable_shared_from_this<gate_in>{
+class elem_out final :public elem_gate<gate_in, gate_out>{
+    using element::get_out;
+    friend class elem_meta;
 public:
-    elem_in(const std::string &name, size_t width=1)
-        :elem_gate<gate_in>(name, name+"in_1", width),
+    elem_out(const std::string &name, const size_t &width=1)
+        :elem_gate(name, name+"_out", width),
         nameable(name)
     {}
-    virtual ~elem_in(){}
+    ~elem_out(){}
 
     void process()override{
-        //TODO:add logger
+        gt_outer->pass_value(gt->get_values());
     }
 
-    size_t get_ins_size()const override{
-        return 1;
+    void set_values(const std::vector<bool> &values)override{
+        gt->set_values(values);
     }
 
-    size_t get_in_id()const{
-        return gt->get_id();
-    }
+    size_t get_ins_size()const override { return 1; }
+    size_t get_outs_size()const override{ return 0; }
 
     std::shared_ptr<const gate_in> get_in(const size_t &place)const override{
         if(place == 0){
             return gt;
         }
-        throw std::runtime_error("elem::get_in should not be called");
+        throw std::runtime_error("elem::get_in should not be called with index != 0");
         return nullptr;
     }
 
     std::shared_ptr<gate_in> get_in(const size_t &place)override{
-        auto c_this = const_cast<const elem_in*>(this);
+        auto c_this = const_cast<const elem_out*>(this);
         auto c_gt = c_this->get_in(place);
         return std::const_pointer_cast<gate_in>(c_gt);
+    }
+};
+
+class elem_in final :public elem_gate<gate_out, gate_in>{
+    using element::get_in;
+    friend class elem_meta;
+public:
+    elem_in(const std::string &name, const size_t &width=1)
+        :elem_gate(name, name+"_in", width),
+        nameable(name)
+    {}
+    ~elem_in(){}
+
+    void process()override{
+        gt->pass_value(gt_outer->get_values());
+    }
+
+    void set_values(const std::vector<bool> &values)override{
+        gt_outer->set_values(values);
+    }
+
+    size_t get_ins_size()const override { return 0; }
+    size_t get_outs_size()const override{ return 1; }
+
+    std::shared_ptr<const gate_out> get_out(const size_t &place)const override{
+        if(place == 0){
+            return gt;
+        }
+        throw std::runtime_error("elem::get_out should not be called with index != 0");
+        return nullptr;
+    }
+
+    std::shared_ptr<gate_out> get_out(const size_t &place)override{
+        auto c_this = const_cast<const elem_in*>(this);
+        auto c_gt = c_this->get_out(place);
+        return std::const_pointer_cast<gate_out>(c_gt);
     }
 };

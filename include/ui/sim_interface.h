@@ -72,12 +72,16 @@ class sim_interface : public draw_widget {
         }
         this->mode = mode::create;
         auto elem = std::make_unique<Elem>(name);
-        auto &ref = this->sim_root->emplace_back(std::move(elem));
+        auto root_id = this->glue.get_root()->id;
+        elem_meta* root = (root_id == 0)?
+            this->sim_root.get():
+            (elem_meta*)this->sim_root->find_element(root_id).get();
+        auto &ref = root->emplace_back(std::move(elem));
         this->view = elem_to_view(ref);
         this->view->st == elem_view::state::creating;
     }
 
-    void set_out_value(std::shared_ptr<elem_view_out> view);
+    void set_in_value(std::shared_ptr<elem_view_in> view);
     void dive_into_meta(std::shared_ptr<elem_view_meta> view);
 
     void show_menu_for_elements(const QPoint &p);
