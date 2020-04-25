@@ -7,6 +7,7 @@
 
 class gate:virtual public nameable{
 protected:
+    friend class elem_file_saver;
     size_t width;
     std::vector<bool> values;
 

@@ -11,6 +11,7 @@ public:
     using outs_vec = std::vector<std::shared_ptr<gate_out>>;
     using gates_vec = std::vector<std::shared_ptr<gate>>;
 protected:
+    friend class elem_file_saver;
     std::vector<std::shared_ptr<gate_in>> ins;
     std::vector<std::shared_ptr<gate_out>> outs;
     std::vector<std::shared_ptr<gate>> gates;
@@ -30,6 +31,7 @@ public:
     auto get_outs_rbegin()      { return outs.rbegin(); }
     auto get_outs_rbegin()const { return outs.crbegin(); }
     auto get_outs_end()         { return outs.end(); }
+    auto get_outs_end()const    { return outs.end(); }
     auto get_outs_cend()const   { return outs.cend(); }
     auto get_outs_rend()        { return outs.rend(); }
     auto get_outs_rend()const   { return outs.crend(); }
@@ -38,6 +40,7 @@ public:
     auto get_ins_rbegin()       { return ins.rbegin(); }
     auto get_ins_rbegin()const  { return ins.crbegin(); }
     auto get_ins_end()          { return ins.end(); }
+    auto get_ins_end()const     { return ins.end(); }
     auto get_ins_cend()const    { return ins.cend(); }
     auto get_ins_rend()         { return ins.rend(); }
     auto get_ins_rend()const    { return ins.crend(); }

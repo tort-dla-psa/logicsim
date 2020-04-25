@@ -10,6 +10,7 @@ class gate_out:public gate{
 public:
     using ins_vec = std::vector<std::shared_ptr<gate_in>>;
 private:
+    friend class elem_file_saver;
     ins_vec ins;
 public:
     gate_out(const std::string &name, const size_t &width=1)
@@ -52,7 +53,18 @@ public:
         auto it = std::find(ins.begin(), ins.end(), in);
         return !(it == ins.end());
     }
-    auto& get_tied()const{
-        return ins;
-    }
+
+    auto get_tied_begin()       { return ins.begin(); }
+    auto get_tied_begin()const  { return ins.begin(); }
+    auto get_tied_cbegin()const { return ins.begin(); }
+    auto get_tied_rbegin()      { return ins.rbegin(); }
+    auto get_tied_rbegin()const { return ins.rbegin(); }
+    auto get_tied_crbegin()const{ return ins.rbegin(); }
+    auto get_tied_end()         { return ins.end(); }
+    auto get_tied_end()const    { return ins.end(); }
+    auto get_tied_cend()const   { return ins.end(); }
+    auto get_tied_rend()        { return ins.rend(); }
+    auto get_tied_rend()const   { return ins.rend(); }
+    auto get_tied_crend()const  { return ins.rend(); }
+    auto& get_tied()const       { return ins; }
 };

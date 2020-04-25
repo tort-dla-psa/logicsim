@@ -1,3 +1,4 @@
+#include <QFileDialog>
 #include "mainwindow.h"
 #include "prop_pair.h"
 #include "ui_mainwindow.h"
@@ -24,8 +25,25 @@ MainWindow::MainWindow(QWidget *parent)
 		ui->props, &properties::slot_element_selected);
 	connect(ui->props, &properties::property_changed,
 		ui->sim_view_wdgt, &sim_interface::slot_propery_changed);
+	connect(ui->actionOpen, &QAction::triggered,
+		this, &MainWindow::open_action);
+	connect(ui->actionSave, &QAction::triggered,
+		this, &MainWindow::save_action);
+	connect(this, &MainWindow::open_signal,
+		sim_iface, &sim_interface::load_sim);
+	connect(this, &MainWindow::save_signal,
+		sim_iface, &sim_interface::save_sim);
 }
 
 MainWindow::~MainWindow(){
 	delete ui;
+}
+
+void MainWindow::open_action(){
+	auto path = QFileDialog::getOpenFileName(this, "Open file");
+	emit open_signal(path);
+}
+void MainWindow::save_action(){
+	auto path = QFileDialog::getSaveFileName(this, "Save file");
+	emit save_signal(path);
 }

@@ -2,6 +2,7 @@
 #include <string>
 
 class nameable{
+    friend class elem_file_saver;
     std::string name;
     size_t id;
 

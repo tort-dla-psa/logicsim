@@ -2,11 +2,13 @@
 #include "properties.h"
 #include "prop_pair.h"
 #include "sim/bit_math.h"
+#include "sim/file_ops.h"
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
 #include <QAction>
 #include <QPen>
+#include <filesystem>
 
 elem_meta::elem_vec::const_iterator sim_interface::find_by_id(const size_t &id)const{
     return std::find_if(sim_root->get_begin(), sim_root->get_end(),
@@ -714,4 +716,12 @@ void sim_interface::add_elem_out(){
 }
 void sim_interface::add_elem_meta(){
     create_elem<elem_meta>("custom");
+}
+void sim_interface::save_sim(QString path){
+    std::filesystem::path std_path = path.toStdString();
+    std::vector<uint8_t> bin = elem_file_saver::to_bin(sim_root.get());
+    //TODO:check if file exists
+    save_bin(bin.begin(), bin.end(), std_path);
+}
+void sim_interface::load_sim(QString path){
 }

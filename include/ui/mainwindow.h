@@ -15,4 +15,9 @@ private:
 	sim_interface *sim_iface;
 	Ui::MainWindow *ui;
 private slots:
+	void open_action();
+	void save_action();
+signals:
+	void open_signal(QString path);
+	void save_signal(QString path);
 };
