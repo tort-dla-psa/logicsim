@@ -143,4 +143,26 @@ public:
         outs.erase(it);
         gates.erase(gates_it);
     }
+
+    friend bool operator==(const element &lhs, const element &rhs){
+        const nameable &lhs_n(lhs);
+        const nameable &rhs_n(rhs);
+        bool ins_eq = std::equal(lhs.ins.begin(), lhs.ins.end(), rhs.ins.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        bool outs_eq = std::equal(lhs.outs.begin(), lhs.outs.end(), rhs.outs.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        bool gates_eq = std::equal(lhs.gates.begin(), lhs.gates.end(), rhs.gates.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        return lhs_n == rhs_n &&
+            ins_eq && outs_eq && gates_eq;
+    }
+    friend bool operator!=(const element &lhs, const element &rhs){
+        return !(lhs == rhs);
+    }
 };

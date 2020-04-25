@@ -38,4 +38,12 @@ public:
     void set_name(const std::string &name){
         this->name = name;
     }
+
+    friend bool operator==(const nameable &lhs, const nameable &rhs){
+        return lhs.id == rhs.id &&
+            lhs.name == rhs.name;
+    }
+    friend bool operator!=(const nameable &lhs, const nameable &rhs){
+        return !(lhs == rhs);
+    }
 };

@@ -13,9 +13,9 @@ inline std::string to_str(const std::vector<bool> &vec){
 }
 
 template<class T, class Arg>
-inline void push(std::vector<T> &vec, const Arg &arg){
+inline void push(std::vector<T> &vec, const Arg &arg, const size_t &len = sizeof(Arg)){
     auto cast = reinterpret_cast<const T*>(&arg);
-    vec.insert(vec.end(), cast, cast+sizeof(Arg));
+    vec.insert(vec.end(), cast, cast+len);
 }
 
 template<class T, class T2>

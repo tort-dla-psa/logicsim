@@ -724,4 +724,15 @@ void sim_interface::save_sim(QString path){
     save_bin(bin.begin(), bin.end(), std_path);
 }
 void sim_interface::load_sim(QString path){
+    std::filesystem::path std_path = path.toStdString();
+    auto bin = load_bin(std_path);
+    std::vector<std::unique_ptr<element>> elements;
+    auto it = bin.cbegin();
+    elem_file_saver::from_bin(it, elements);
+    if(it != bin.cend()){
+        qWarning()<<"NOTE: not all values from bin were read";
+    }
+    auto ptr = elements.front().release();
+    auto meta_cast = dynamic_cast<elem_meta*>(ptr);
+    this->sim_root = std::unique_ptr<elem_meta>(meta_cast);
 }

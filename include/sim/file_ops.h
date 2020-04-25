@@ -8,17 +8,68 @@
 #include "helpers.h"
 
 class elem_file_saver{
+    enum class types{
+        t_meta = 0,
+        t_and,
+        t_or,
+        t_not,
+        t_in,
+        t_out
+    };
+
+    static types p_elem_to_type(const element* elem){
+        using namespace sim_helpers;
+        if(dynamic_cast<const elem_meta*>(elem)){
+            return types::t_meta;
+        }else if(dynamic_cast<const elem_and*>(elem)){
+            return types::t_and;
+        }else if(dynamic_cast<const elem_or*>(elem)){
+            return types::t_or;
+        }else if(dynamic_cast<const elem_not*>(elem)){
+            return types::t_not;
+        }else if(dynamic_cast<const elem_in*>(elem)){
+            return types::t_in;
+        }else if(dynamic_cast<const elem_out*>(elem)){
+            return types::t_out;
+        }else{
+            throw std::runtime_error("unknown type of element to make element_type");
+        }
+        return types::t_meta; //unreachable
+    }
+
+    static std::unique_ptr<element> p_type_to_elem(const types &type, const std::string &name){
+        if(type == types::t_meta){
+            return std::make_unique<elem_meta>(name);
+        }else if(type == types::t_and){
+            return std::make_unique<elem_and>(name);
+        }else if(type == types::t_or){
+            return std::make_unique<elem_or>(name);
+        }else if(type == types::t_not){
+            return std::make_unique<elem_not>(name);
+        }else if(type == types::t_in){
+            return std::make_unique<elem_in>(name);
+        }else if(type == types::t_out){
+            return std::make_unique<elem_out>(name);
+        }else{
+            throw std::runtime_error("unknown type of element_type to make element");
+        }
+        return nullptr; //unreachable
+    }
 public:
 
 static std::vector<uint8_t> to_bin(const element* elem){
     using namespace sim_helpers;
     std::vector<uint8_t> result;
     push(result, elem->get_id());
+    push(result, elem->name.size());
+    push(result, elem->name.c_str(), elem->name.size());
+    push(result, p_elem_to_type(elem));
+
     auto push_gate = [&result](auto gt){
         auto name = gt->get_name();
         push(result, gt->get_id());
         push(result, name.size());
-        push(result, name);
+        push(result, name.c_str(), name.size());
         push(result, gt->get_width());
     };
     {
@@ -65,9 +116,21 @@ static std::vector<uint8_t> to_bin(const element* elem){
     return result;
 }
 
-static void from_bin(std::vector<uint8_t>::const_iterator &it, element*& elem){
+static void from_bin(std::vector<uint8_t>::const_iterator &it, std::vector<std::unique_ptr<element>>& elems){
     using namespace sim_helpers;
-    elem->id = get_var<decltype(elem->id)>(it);
+
+    std::unique_ptr<element> elem;
+    {
+        auto id = get_var<decltype(nameable::id)>(it);
+        auto name_len = get_var<size_t>(it);
+        auto name_chars = reinterpret_cast<const char*>(it.base());
+        auto name = std::string(name_chars, name_chars+name_len);
+        it += name_len;
+        auto type_ = get_var<elem_file_saver::types>(it);
+        elem = std::move(p_type_to_elem(type_, name));
+        elem->id = id;
+    }
+
     auto get_gate_params = [&it](auto &id, auto &name, auto &width){
         id = get_var<decltype(nameable::id)>(it);
         auto name_len = get_var<size_t>(it);
@@ -108,13 +171,25 @@ static void from_bin(std::vector<uint8_t>::const_iterator &it, element*& elem){
             }
         }
     }
+    auto count = get_var<std::ptrdiff_t>(it);
+    if(count == 1){
+    }else{
+        auto meta_cast = dynamic_cast<elem_meta*>(elem.get());
+        std::vector<std::unique_ptr<element>> elems_inner;
+        elems_inner.reserve(count);
+        for(decltype(count) i=0; i<count; i++){
+            from_bin(it, elems_inner);
+        }
+        meta_cast->elements = std::move(elems_inner);
+    }
+    elems.emplace_back(std::move(elem));
 }
 
 };
 
 inline std::vector<uint8_t> load_bin(const std::filesystem::path &path){
     if(!std::filesystem::exists(path)){
-        throw std::runtime_error("file doesn't exists");
+        throw std::runtime_error("file doesn't exist:"+path.string());
     }
     auto file = std::ifstream(path, std::ios::in | std::ios::binary);
     if(!file.good()){

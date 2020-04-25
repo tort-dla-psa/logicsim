@@ -1,4 +1,5 @@
 #include <QFileDialog>
+#include <QMessageBox>
 #include "mainwindow.h"
 #include "prop_pair.h"
 #include "ui_mainwindow.h"
@@ -41,11 +42,15 @@ MainWindow::~MainWindow(){
 
 void MainWindow::open_action(){
 	this->setFocus();
-	auto path = QFileDialog::getOpenFileName(this, tr("Open file"), QString(),
-		tr("Sim (*.sim);;All Files (*)"));
+	auto path = QFileDialog::getOpenFileName(this, tr("Open file"), QDir::currentPath(),
+		tr("Sim (*.sim);;All Files (*)"), nullptr, QFileDialog::DontUseNativeDialog);
+	if(path.isNull() || path.isEmpty()){
+		return;
+	}
 	emit open_signal(path);
 }
 void MainWindow::save_action(){
-	auto path = QFileDialog::getSaveFileName(this, "Save file");
+	auto path = QFileDialog::getSaveFileName(this, "Save file", QDir::currentPath(),
+		tr("Sim (*.sim);;All Files (*)"), nullptr, QFileDialog::DontUseNativeDialog);
 	emit save_signal(path);
 }

@@ -67,4 +67,21 @@ public:
     auto get_tied_rend()const   { return ins.rend(); }
     auto get_tied_crend()const  { return ins.rend(); }
     auto& get_tied()const       { return ins; }
+
+    friend bool operator==(const gate_out &lhs, const gate_out &rhs){
+        const nameable &lhs_n(lhs);
+        const nameable &rhs_n(rhs);
+        const gate &lhs_g(lhs);
+        const gate &rhs_g(rhs);
+        bool ins_eq = std::equal(lhs.ins.begin(), lhs.ins.end(), rhs.ins.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        return lhs_n == rhs_n &&
+            lhs_g == rhs_g &&
+            ins_eq;
+    }
+    friend bool operator!=(const gate_out &lhs, const gate_out &rhs){
+        return !(lhs == rhs);
+    }
 };
