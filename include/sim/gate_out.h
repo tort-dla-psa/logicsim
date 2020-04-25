@@ -10,6 +10,7 @@ class gate_out:public gate{
 public:
     using ins_vec = std::vector<std::shared_ptr<gate_in>>;
 private:
+    friend class elem_file_saver;
     ins_vec ins;
 public:
     gate_out(const std::string &name, const size_t &width=1)
@@ -52,7 +53,35 @@ public:
         auto it = std::find(ins.begin(), ins.end(), in);
         return !(it == ins.end());
     }
-    auto& get_tied()const{
-        return ins;
+
+    auto get_tied_begin()       { return ins.begin(); }
+    auto get_tied_begin()const  { return ins.begin(); }
+    auto get_tied_cbegin()const { return ins.begin(); }
+    auto get_tied_rbegin()      { return ins.rbegin(); }
+    auto get_tied_rbegin()const { return ins.rbegin(); }
+    auto get_tied_crbegin()const{ return ins.rbegin(); }
+    auto get_tied_end()         { return ins.end(); }
+    auto get_tied_end()const    { return ins.end(); }
+    auto get_tied_cend()const   { return ins.end(); }
+    auto get_tied_rend()        { return ins.rend(); }
+    auto get_tied_rend()const   { return ins.rend(); }
+    auto get_tied_crend()const  { return ins.rend(); }
+    auto& get_tied()const       { return ins; }
+
+    friend bool operator==(const gate_out &lhs, const gate_out &rhs){
+        const nameable &lhs_n(lhs);
+        const nameable &rhs_n(rhs);
+        const gate &lhs_g(lhs);
+        const gate &rhs_g(rhs);
+        bool ins_eq = std::equal(lhs.ins.begin(), lhs.ins.end(), rhs.ins.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        return lhs_n == rhs_n &&
+            lhs_g == rhs_g &&
+            ins_eq;
+    }
+    friend bool operator!=(const gate_out &lhs, const gate_out &rhs){
+        return !(lhs == rhs);
     }
 };

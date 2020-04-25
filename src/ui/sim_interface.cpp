@@ -2,11 +2,13 @@
 #include "properties.h"
 #include "prop_pair.h"
 #include "sim/bit_math.h"
+#include "sim/file_ops.h"
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
 #include <QAction>
 #include <QPen>
+#include <filesystem>
 
 elem_meta::elem_vec::const_iterator sim_interface::find_by_id(const size_t &id)const{
     return std::find_if(sim_root->get_begin(), sim_root->get_end(),
@@ -287,7 +289,7 @@ sim_interface::sim_interface(QWidget* parent)
     this->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &QWidget::customContextMenuRequested,
             this, &sim_interface::showContextMenu);
-    setFocus();
+    //setFocus();
     QWidget::setMouseTracking(true);
     mode = mode::still;
 }
@@ -399,7 +401,7 @@ void sim_interface::showContextMenu(const QPoint &p){
 }
 
 void sim_interface::mouseMoveEvent(QMouseEvent *e){
-    setFocus();
+    //setFocus();
     this->mouse_pos_prev_move = this->mouse_pos;
     this->mouse_pos = e->pos();
     auto x = e->x();
@@ -714,4 +716,23 @@ void sim_interface::add_elem_out(){
 }
 void sim_interface::add_elem_meta(){
     create_elem<elem_meta>("custom");
+}
+void sim_interface::save_sim(QString path){
+    std::filesystem::path std_path = path.toStdString();
+    std::vector<uint8_t> bin = elem_file_saver::to_bin(sim_root.get());
+    //TODO:check if file exists
+    save_bin(bin.begin(), bin.end(), std_path);
+}
+void sim_interface::load_sim(QString path){
+    std::filesystem::path std_path = path.toStdString();
+    auto bin = load_bin(std_path);
+    std::vector<std::unique_ptr<element>> elements;
+    auto it = bin.cbegin();
+    elem_file_saver::from_bin(it, elements);
+    if(it != bin.cend()){
+        qWarning()<<"NOTE: not all values from bin were read";
+    }
+    auto ptr = elements.front().release();
+    auto meta_cast = dynamic_cast<elem_meta*>(ptr);
+    this->sim_root = std::unique_ptr<elem_meta>(meta_cast);
 }

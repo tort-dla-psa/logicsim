@@ -7,6 +7,7 @@
 
 class gate:virtual public nameable{
 protected:
+    friend class elem_file_saver;
     size_t width;
     std::vector<bool> values;
 
@@ -49,5 +50,15 @@ public:
         }
         log("got value "+sim_helpers::to_str(values));
         this->values = values;
+    }
+
+    friend bool operator==(const gate &lhs, const gate &rhs){
+        const nameable& lhs_n(lhs);
+        const nameable& rhs_n(rhs);
+        return lhs_n == rhs_n &&
+            lhs.width == rhs.width;
+    }
+    friend bool operator!=(const gate &lhs, const gate &rhs){
+        return !(lhs == rhs);
     }
 };

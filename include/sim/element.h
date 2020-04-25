@@ -11,6 +11,7 @@ public:
     using outs_vec = std::vector<std::shared_ptr<gate_out>>;
     using gates_vec = std::vector<std::shared_ptr<gate>>;
 protected:
+    friend class elem_file_saver;
     std::vector<std::shared_ptr<gate_in>> ins;
     std::vector<std::shared_ptr<gate_out>> outs;
     std::vector<std::shared_ptr<gate>> gates;
@@ -30,6 +31,7 @@ public:
     auto get_outs_rbegin()      { return outs.rbegin(); }
     auto get_outs_rbegin()const { return outs.crbegin(); }
     auto get_outs_end()         { return outs.end(); }
+    auto get_outs_end()const    { return outs.end(); }
     auto get_outs_cend()const   { return outs.cend(); }
     auto get_outs_rend()        { return outs.rend(); }
     auto get_outs_rend()const   { return outs.crend(); }
@@ -38,6 +40,7 @@ public:
     auto get_ins_rbegin()       { return ins.rbegin(); }
     auto get_ins_rbegin()const  { return ins.crbegin(); }
     auto get_ins_end()          { return ins.end(); }
+    auto get_ins_end()const     { return ins.end(); }
     auto get_ins_cend()const    { return ins.cend(); }
     auto get_ins_rend()         { return ins.rend(); }
     auto get_ins_rend()const    { return ins.crend(); }
@@ -139,5 +142,27 @@ public:
         auto gates_it = std::find(gates.begin(), gates.end(), el);
         outs.erase(it);
         gates.erase(gates_it);
+    }
+
+    friend bool operator==(const element &lhs, const element &rhs){
+        const nameable &lhs_n(lhs);
+        const nameable &rhs_n(rhs);
+        bool ins_eq = std::equal(lhs.ins.begin(), lhs.ins.end(), rhs.ins.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        bool outs_eq = std::equal(lhs.outs.begin(), lhs.outs.end(), rhs.outs.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        bool gates_eq = std::equal(lhs.gates.begin(), lhs.gates.end(), rhs.gates.begin(),
+            [](auto ptr1, auto ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        return lhs_n == rhs_n &&
+            ins_eq && outs_eq && gates_eq;
+    }
+    friend bool operator!=(const element &lhs, const element &rhs){
+        return !(lhs == rhs);
     }
 };

@@ -104,6 +104,8 @@ public slots:
     void add_elem_in();
     void add_elem_out();
     void add_elem_meta();
+    void save_sim(QString path);
+    void load_sim(QString path);
 
     void slot_propery_changed(const prop_pair* prop);
     void showContextMenu(const QPoint &p);

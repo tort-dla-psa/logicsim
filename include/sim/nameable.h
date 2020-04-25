@@ -2,6 +2,7 @@
 #include <string>
 
 class nameable{
+    friend class elem_file_saver;
     std::string name;
     size_t id;
 
@@ -36,5 +37,13 @@ public:
     }
     void set_name(const std::string &name){
         this->name = name;
+    }
+
+    friend bool operator==(const nameable &lhs, const nameable &rhs){
+        return lhs.id == rhs.id &&
+            lhs.name == rhs.name;
+    }
+    friend bool operator!=(const nameable &lhs, const nameable &rhs){
+        return !(lhs == rhs);
     }
 };

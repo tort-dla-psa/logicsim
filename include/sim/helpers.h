@@ -12,4 +12,17 @@ inline std::string to_str(const std::vector<bool> &vec){
     return result;
 }
 
+template<class T, class Arg>
+inline void push(std::vector<T> &vec, const Arg &arg, const size_t &len = sizeof(Arg)){
+    auto cast = reinterpret_cast<const T*>(&arg);
+    vec.insert(vec.end(), cast, cast+len);
+}
+
+template<class T, class T2>
+inline T get_var(T2 &data){
+    auto ptr = reinterpret_cast<const T*>(data.base());
+    data += sizeof(T);
+    return *ptr;
+}
+
 };

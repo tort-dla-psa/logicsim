@@ -10,6 +10,7 @@ public:
     using elem_vec = std::vector<std::unique_ptr<element>>;
 protected:
 friend class sim;
+friend class elem_file_saver;
     elem_vec elements;
 public:
     elem_meta(const std::string &name)
@@ -116,5 +117,19 @@ public:
 
     void erase(const elem_vec::const_iterator &it){
         elements.erase(it);
+    }
+
+    friend bool operator==(const elem_meta &lhs, const elem_meta &rhs){
+        const element &lhs_el(lhs);
+        const element &rhs_el(rhs);
+        bool els_eq = std::equal(lhs.elements.begin(), lhs.elements.end(), rhs.elements.begin(),
+            [](auto &ptr1, auto &ptr2){
+                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
+            });
+        return lhs_el == rhs_el &&
+            els_eq;
+    }
+    friend bool operator!=(const elem_meta &lhs, const elem_meta &rhs){
+        return !(lhs == rhs);
     }
 };
