@@ -2,6 +2,22 @@
 #include "sim/file_ops.h"
 #include <filesystem>
 
+void print_diff(std::vector<uint8_t>::const_iterator begin,
+    std::vector<uint8_t>::const_iterator end, 
+    std::vector<uint8_t>::const_iterator begin2)
+{
+    auto bak = begin;
+    while(begin != end){
+        if(*begin != *begin2){
+            std::cout<<"diff at:"<<std::distance(bak, begin)<<
+                "\t"<<std::to_string(*begin)<<
+                "\t"<<std::to_string(*begin2)<<"\n";
+        }
+        begin++;
+        begin2++;
+    }
+}
+
 int main(){
     auto root1 = std::make_unique<elem_meta>("root");
     auto and_elem = std::make_unique<elem_and>("and1");
@@ -15,11 +31,12 @@ int main(){
     if(std::filesystem::exists(path)){
         std::filesystem::remove(path);
     }
-    save_bin(bin_save.cbegin(), bin_save.cend(), path);
+    elem_file_saver::save_bin(bin_save.cbegin(), bin_save.cend(), path);
 
-    auto bin_load = load_bin(path);
+    auto bin_load = elem_file_saver::load_bin(path);
     if(!std::equal(bin_save.cbegin(), bin_save.cend(), bin_load.cbegin())){
         std::filesystem::remove(path);
+        print_diff(bin_save.begin(), bin_save.end(), bin_load.begin());
         throw std::runtime_error("saved and loaded binaries are not the same");
     }
 

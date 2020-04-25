@@ -721,11 +721,11 @@ void sim_interface::save_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
     std::vector<uint8_t> bin = elem_file_saver::to_bin(sim_root.get());
     //TODO:check if file exists
-    save_bin(bin.begin(), bin.end(), std_path);
+    elem_file_saver::save_bin(bin.begin(), bin.end(), std_path);
 }
 void sim_interface::load_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
-    auto bin = load_bin(std_path);
+    auto bin = elem_file_saver::load_bin(std_path);
     std::vector<std::unique_ptr<element>> elements;
     auto it = bin.cbegin();
     elem_file_saver::from_bin(it, elements);

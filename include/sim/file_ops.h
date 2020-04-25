@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <filesystem>
 #include <vector>
@@ -55,68 +56,67 @@ class elem_file_saver{
         }
         return nullptr; //unreachable
     }
-public:
 
-static std::vector<uint8_t> to_bin(const element* elem){
-    using namespace sim_helpers;
-    std::vector<uint8_t> result;
-    push(result, elem->get_id());
-    push(result, elem->name.size());
-    push(result, elem->name.c_str(), elem->name.size());
-    push(result, p_elem_to_type(elem));
-
-    auto push_gate = [&result](auto gt){
-        auto name = gt->get_name();
-        push(result, gt->get_id());
-        push(result, name.size());
-        push(result, name.c_str(), name.size());
-        push(result, gt->get_width());
+static void retie(std::vector<std::unique_ptr<element>>& elems){
+    auto get_gate_by_id = [](auto elems_beg, auto elems_end, auto id) { //YAAAY, recursive lambda!!
+        auto get_gate_id_impl = [](auto elems_beg, auto elems_end, auto id, auto &func)
+            ->std::shared_ptr<gate>
+        {
+            for(auto it = elems_beg; it != elems_end; it++){
+                auto &el = *it;
+                auto meta_cast = dynamic_cast<elem_meta*>(el.get());
+                if(meta_cast){
+                    return func(meta_cast->get_begin(), meta_cast->get_end(), id, func);
+                }
+                auto gt_beg = el->get_gates_begin();
+                auto gt_end = el->get_gates_end();
+                for(auto it = gt_beg; it != gt_end; it++){
+                    auto &gt = *it;
+                    if(gt->get_id() == id){
+                        return gt;
+                    }
+                }
+            }
+            return nullptr; //should not reach it
+        };
+        return get_gate_id_impl(elems_beg, elems_end, id, get_gate_id_impl);
     };
-    {
-        auto beg = elem->get_ins_begin();
-        auto end = elem->get_ins_end();
-        push(result, std::distance(beg, end));
-        for(auto it = beg; it != end; it++){
-            auto &gt = *it;
-            push_gate(gt);
-        }
-    }
-    {
-        auto beg = elem->get_outs_begin();
-        auto end = elem->get_outs_end();
-        push(result, std::distance(beg, end));
-        for(auto it = beg; it != end; it++){
-            auto &gt = *it;
-            push_gate(gt);
 
-            auto ins_beg = gt->get_tied_begin();
-            auto ins_end = gt->get_tied_end();
-            push(result, std::distance(ins_beg, ins_end));
-            for(auto it = ins_beg; it != ins_end; it++){
-                auto &in = *it;
-                push_gate(in);
+    auto retie_elem = [&elems, &get_gate_by_id](auto &el){ //el is ptr
+        auto out_beg = el->get_outs_begin();
+        auto out_end = el->get_outs_end();
+        for(auto it = out_beg; it != out_end; it++){
+            auto tied_beg = (*it)->get_tied_begin();
+            auto tied_end = (*it)->get_tied_end();
+            for(auto it_tied = tied_beg; it_tied != tied_end; it++){
+                auto id = (*it_tied)->get_id();
+                auto gate_to_tie = get_gate_by_id(elems.begin(), elems.end(), id);
+                auto gate_to_tie_cast = std::dynamic_pointer_cast<gate_in>(gate_to_tie);
+                if(!gate_to_tie_cast){
+                    auto mes = "gate with id "+std::to_string(id)+" is not a gate_in";
+                    throw std::runtime_error(mes);
+                }
+                *it_tied = gate_to_tie_cast; //replace placeholder with real gate_in
             }
         }
-    }
-    auto meta_cast = dynamic_cast<const elem_meta*>(elem);
-    if(meta_cast){
-        auto beg = meta_cast->get_begin();
-        auto end = meta_cast->get_end();
-        auto size_subs = std::distance(beg, end);
-        for(auto it = beg; it != end; it++){
-            auto sub_bin = to_bin(it.base()->get());
-            result.reserve(result.size()+sub_bin.size());
-            result.insert(result.end(), sub_bin.begin(), sub_bin.end());
+    };
+
+    for(auto &el:elems){
+        auto meta_cast = dynamic_cast<elem_meta*>(el.get());
+        if(meta_cast){
+            auto in_beg = meta_cast->get_begin();
+            auto in_end = meta_cast->get_end();
+            for(auto it = in_beg; it != in_end; it++){
+                retie_elem(*it);
+            }
+            retie_elem(el);
+            continue;
         }
-    }else{
-        std::ptrdiff_t size_subs = 1;
-        auto bytes = reinterpret_cast<const char*>(&size_subs);
-        result.insert(result.end(), bytes, bytes+sizeof(size_subs));
+        retie_elem(el);
     }
-    return result;
 }
 
-static void from_bin(std::vector<uint8_t>::const_iterator &it, std::vector<std::unique_ptr<element>>& elems){
+static void from_bin_load(std::vector<uint8_t>::const_iterator &it, std::vector<std::unique_ptr<element>>& elems){
     using namespace sim_helpers;
 
     std::unique_ptr<element> elem;
@@ -178,34 +178,95 @@ static void from_bin(std::vector<uint8_t>::const_iterator &it, std::vector<std::
         std::vector<std::unique_ptr<element>> elems_inner;
         elems_inner.reserve(count);
         for(decltype(count) i=0; i<count; i++){
-            from_bin(it, elems_inner);
+            from_bin_load(it, elems_inner);
         }
         meta_cast->elements = std::move(elems_inner);
     }
     elems.emplace_back(std::move(elem));
 }
+public:
 
-};
+static std::vector<uint8_t> to_bin(const element* elem){
+    using namespace sim_helpers;
+    std::vector<uint8_t> result;
+    push(result, elem->get_id());
+    push(result, elem->name.size());
+    push(result, elem->name.c_str(), elem->name.size());
+    push(result, p_elem_to_type(elem));
 
-inline std::vector<uint8_t> load_bin(const std::filesystem::path &path){
+    auto push_gate = [&result](auto gt){
+        auto name = gt->get_name();
+        push(result, gt->get_id());
+        push(result, name.size());
+        push(result, name.c_str(), name.size());
+        push(result, gt->get_width());
+    };
+    {
+        auto beg = elem->get_ins_begin();
+        auto end = elem->get_ins_end();
+        push(result, std::distance(beg, end));
+        for(auto it = beg; it != end; it++){
+            auto &gt = *it;
+            push_gate(gt);
+        }
+    }
+    {
+        auto beg = elem->get_outs_begin();
+        auto end = elem->get_outs_end();
+        push(result, std::distance(beg, end));
+        for(auto it = beg; it != end; it++){
+            auto &gt = *it;
+            push_gate(gt);
+
+            auto ins_beg = gt->get_tied_begin();
+            auto ins_end = gt->get_tied_end();
+            push(result, std::distance(ins_beg, ins_end));
+            for(auto it = ins_beg; it != ins_end; it++){
+                auto &in = *it;
+                push_gate(in);
+            }
+        }
+    }
+    auto meta_cast = dynamic_cast<const elem_meta*>(elem);
+    if(meta_cast){
+        auto beg = meta_cast->get_begin();
+        auto end = meta_cast->get_end();
+        auto size_subs = std::distance(beg, end);
+        push(result, size_subs);
+        for(auto it = beg; it != end; it++){
+            auto sub_bin = to_bin(it.base()->get());
+            result.reserve(result.size()+sub_bin.size());
+            result.insert(result.end(), sub_bin.begin(), sub_bin.end());
+        }
+    }else{
+        std::ptrdiff_t size_subs = 1;
+        push(result, size_subs);
+    }
+    return result;
+}
+
+static void from_bin(std::vector<uint8_t>::const_iterator &it, std::vector<std::unique_ptr<element>>& elems){
+    from_bin_load(it, elems);
+    retie(elems);
+}
+
+static inline std::vector<uint8_t> load_bin(const std::filesystem::path &path){
     if(!std::filesystem::exists(path)){
         throw std::runtime_error("file doesn't exist:"+path.string());
     }
-    auto file = std::ifstream(path, std::ios::in | std::ios::binary);
+    auto file = std::ifstream(path, std::ios::in | std::ios_base::binary);
     if(!file.good()){
         throw std::runtime_error("file open error");
     }
     auto size = std::filesystem::file_size(path);
     std::vector<uint8_t> result;
-    result.reserve(size);
-    result.insert(result.end(),
-        std::istream_iterator<uint8_t>(file),
-        std::istream_iterator<uint8_t>());
+    result.resize(size);
+    file.readsome((char*)result.data(), size);
     file.close();
     return result;
 }
 
-inline void save_bin(std::vector<uint8_t>::const_iterator begin,
+static inline void save_bin(std::vector<uint8_t>::const_iterator begin,
     std::vector<uint8_t>::const_iterator end,
     const std::filesystem::path &path)
 {
@@ -216,3 +277,5 @@ inline void save_bin(std::vector<uint8_t>::const_iterator begin,
     std::copy(begin, end, std::ostream_iterator<uint8_t>(file));
     file.close();
 }
+
+};

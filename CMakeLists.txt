@@ -1,8 +1,6 @@
 project(logicsim)
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_C_COMPILER /usr/bin/gcc-8)
-set(CMAKE_CXX_COMPILER /usr/bin/g++-8)
 set (CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set (CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
