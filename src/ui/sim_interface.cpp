@@ -289,7 +289,7 @@ sim_interface::sim_interface(QWidget* parent)
     this->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &QWidget::customContextMenuRequested,
             this, &sim_interface::showContextMenu);
-    setFocus();
+    //setFocus();
     QWidget::setMouseTracking(true);
     mode = mode::still;
 }
@@ -401,7 +401,7 @@ void sim_interface::showContextMenu(const QPoint &p){
 }
 
 void sim_interface::mouseMoveEvent(QMouseEvent *e){
-    setFocus();
+    //setFocus();
     this->mouse_pos_prev_move = this->mouse_pos;
     this->mouse_pos = e->pos();
     auto x = e->x();

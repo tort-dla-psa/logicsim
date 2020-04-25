@@ -40,7 +40,9 @@ MainWindow::~MainWindow(){
 }
 
 void MainWindow::open_action(){
-	auto path = QFileDialog::getOpenFileName(this, "Open file");
+	this->setFocus();
+	auto path = QFileDialog::getOpenFileName(this, tr("Open file"), QString(),
+		tr("Sim (*.sim);;All Files (*)"));
 	emit open_signal(path);
 }
 void MainWindow::save_action(){
