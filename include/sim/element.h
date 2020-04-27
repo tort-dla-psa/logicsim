@@ -24,7 +24,7 @@ public:
         reset_processed();
     }
     virtual ~element(){}
-    virtual void process()=0;
+    virtual void process(){}
 
     auto get_outs_begin()       { return outs.begin(); }
     auto get_outs_begin()const  { return outs.cbegin(); }

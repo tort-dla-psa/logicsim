@@ -8,6 +8,7 @@
 #include "draw_widget.h"
 #include "sim/sim.h"
 #include "sim/element.h"
+#include "sim/k_tree.h"
 #include "sim_ui_glue.h"
 
 class prop_pair;
@@ -26,8 +27,8 @@ class sim_interface : public draw_widget {
     std::vector<std::shared_ptr<elem_view>> selected_views;
     std::shared_ptr<gate_view> gate_view_1, gate_view_2;
 
-    std::unique_ptr<elem_meta> sim_root;
-	//class sim sim;
+    class sim sim;
+
     size_t w=1000, h=1000,
         default_elem_width=50,
         default_elem_height=50,
@@ -44,8 +45,6 @@ class sim_interface : public draw_widget {
 
     std::vector<int> pressed_keys;
     QPoint cm_pos;
-
-    elem_meta::elem_vec::const_iterator find_by_id(const size_t &id)const;
 
     void connect_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2);
 
@@ -73,10 +72,8 @@ class sim_interface : public draw_widget {
         this->mode = mode::create;
         auto elem = std::make_unique<Elem>(name);
         auto root_id = this->glue.get_root()->id;
-        elem_meta* root = (root_id == 0)?
-            this->sim_root.get():
-            (elem_meta*)this->sim_root->find_element(root_id).get();
-        auto &ref = root->emplace_back(std::move(elem));
+        auto root_it = this->sim.get_by_id(root_id);
+        auto &ref = *sim.emplace(root_it, std::move(elem));
         this->view = elem_to_view(ref);
         this->view->st == elem_view::state::creating;
     }

@@ -10,17 +10,13 @@
 #include <QPen>
 #include <filesystem>
 
-elem_meta::elem_vec::const_iterator sim_interface::find_by_id(const size_t &id)const{
-    return std::find_if(sim_root->get_begin(), sim_root->get_end(),
-    [&id](auto &el){
-        return el->get_id() == id;
-    });
-}
-
 void sim_interface::connect_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2){
     bool valid = false;
-    auto gt_1 = sim_root->find_gate(gate_view_1->id);
-    auto gt_2 = sim_root->find_gate(gate_view_2->id);
+    auto gt_1_parent_it = sim.get_by_id(gate_view_1->parent->id);
+    auto gt_2_parent_it = sim.get_by_id(gate_view_2->parent->id);
+    auto gt_1 = (*gt_1_parent_it)->find_gate(gate_view_1->id);
+    auto gt_2 = (*gt_2_parent_it)->find_gate(gate_view_2->id);
+
     auto func = [](auto gt_1, auto gt_2){
         auto in_cast = std::dynamic_pointer_cast<gate_in>(gt_1);
         auto out_cast = std::dynamic_pointer_cast<gate_out>(gt_2);
@@ -34,17 +30,17 @@ void sim_interface::connect_gates(std::shared_ptr<gate_view> gate_view_1, std::s
     valid |= func(gt_1, gt_2);
     if(!valid){
         valid |= func(gt_2, gt_1);
-    }
-    if(!valid){
-        qWarning("wrong connection");
+        if(!valid){
+            qWarning("wrong connection");
+        }
     }
     glue.tie_gates(gate_view_1, gate_view_2, valid);
     return;
 }
 
 std::shared_ptr<elem_view> sim_interface::elem_to_view(size_t id){
-    const auto &el = sim_root->find_element(id);
-    return elem_to_view(el);
+    const auto &el_it = sim.get_by_id(id);
+    return elem_to_view(*el_it);
 }
 std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::unique_ptr<element> &elem){
     std::shared_ptr<elem_view> view;
@@ -251,7 +247,22 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     pnt.end();
 
     if(std::dynamic_pointer_cast<elem_view_gate>(view)){
-        auto gt = sim_root->find_gate(view->id);
+        auto &gt_parent = *sim.get_by_id(view->id);
+        std::shared_ptr<gate> gt;
+        for(auto gt_v_it = view->gates_in.begin(); !gt && gt_v_it != view->gates_in.end(); gt_v_it++){
+            auto &gt_v = *gt_v_it;
+            auto gt_tmp = gt_parent->find_gate(gt_v->id);
+            if(gt_tmp){
+                gt = std::move(gt_tmp);
+            }
+        }
+        for(auto gt_v_it = view->gates_out.begin(); !gt && gt_v_it != view->gates_out.end(); gt_v_it++){
+            auto &gt_v = *gt_v_it;
+            auto gt_tmp = gt_parent->find_gate(gt_v->id);
+            if(gt_tmp){
+                gt = std::move(gt_tmp);
+            }
+        }
         auto bit_val = gt->get_values();
         QString txt;
         txt.reserve(bit_val.size());
@@ -285,7 +296,6 @@ sim_interface::sim_interface(QWidget* parent)
     :draw_widget(parent),
     glue(sim_ui_glue::get_instance())
 {
-    this->sim_root = std::make_unique<elem_meta>("root");
     this->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &QWidget::customContextMenuRequested,
             this, &sim_interface::showContextMenu);
@@ -297,8 +307,7 @@ sim_interface::~sim_interface(){}
 
 void sim_interface::try_tick(){
     try{
-        sim_root->reset_processed();
-        sim_root->process();
+        sim.tick();
     }catch(std::runtime_error &e){
         QMessageBox::critical(this, "Error!", QString::fromStdString(e.what()));
     }
@@ -307,8 +316,8 @@ void sim_interface::try_tick(){
 void sim_interface::delete_item_cm(){
     auto &id =this->view->id;
     glue.del_view(id);
-    auto el = find_by_id(id);
-    sim_root->erase(el);
+    auto el = sim.get_by_id(id);
+    sim.erase(el);
     this->view = nullptr;
     emit element_selected(nullptr);
     update();
@@ -320,8 +329,8 @@ void sim_interface::cut_item_cm(){
 void sim_interface::delete_items_cm(){
     for(auto el:selected_views){
         glue.del_view(el->id);
-        auto sim_el_it = find_by_id(el->id);
-        sim_root->erase(sim_el_it);
+        auto el_it = sim.get_by_id(el->id);
+        sim.erase(el_it);
         if(el == this->view){
             this->view = nullptr;
             emit element_selected(nullptr);
@@ -338,8 +347,8 @@ void sim_interface::cut_items_cm(){
 void sim_interface::go_up_cm(){
     auto root = glue.get_root();
     std::shared_ptr<elem_view> view = root;
-    place_gates_in(view, *find_by_id(root->id));
-    place_gates_out(view, *find_by_id(root->id));
+    place_gates_in(view, *sim.get_by_id(root->id));
+    place_gates_out(view, *sim.get_by_id(root->id));
     if(root->parent){
         auto meta_cast = std::dynamic_pointer_cast<elem_view_meta>(root->parent);
         dive_into_meta(meta_cast);
@@ -464,7 +473,7 @@ void sim_interface::set_in_value(std::shared_ptr<elem_view_in> view){
     auto bits = bits::to_bits(input);
     class elem_in* elem_in;
     try{
-        auto &ref = sim_root->find_element(view->id);
+        auto &ref = *sim.get_by_id(view->id);
         elem_in = dynamic_cast<class elem_in*>(ref.get());
     }catch(std::out_of_range &e){
         qWarning()<<"something went wrong:"<<e.what();
@@ -495,8 +504,8 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             view->st = elem_view::state::selected;
             emit element_selected(view);
         }else if(e->buttons() & Qt::RightButton){
-            auto el_it = find_by_id(this->view->id);
-            sim_root->erase(el_it);
+            auto el_it = sim.get_by_id(this->view->id);
+            sim.erase(el_it);
             view = nullptr;
             mode = mode::still;
         }
@@ -672,7 +681,8 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
         prop->set_view_value(this->view);
         auto gate_cast = std::dynamic_pointer_cast<gate_view>(view);
         if(gate_cast && prop->name() == "bit_w"){
-            auto gt = sim_root->find_gate(view->id);
+            auto view_parent_it = sim.get_by_id(view->parent->id);
+            auto gt = (*view_parent_it)->find_gate(view->id);
             gt->set_width(gate_cast->bit_width);
             auto func = [this, &gate_cast](std::shared_ptr<gate_view> gt){
                 gt->bit_width = gate_cast->bit_width;
@@ -719,7 +729,7 @@ void sim_interface::add_elem_meta(){
 }
 void sim_interface::save_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
-    std::vector<uint8_t> bin = elem_file_saver::to_bin(sim_root.get());
+    std::vector<uint8_t> bin = elem_file_saver::to_bin(sim.root()->get());
     //TODO:check if file exists
     elem_file_saver::save_bin(bin.begin(), bin.end(), std_path);
 }
@@ -733,6 +743,6 @@ void sim_interface::load_sim(QString path){
         qWarning()<<"NOTE: not all values from bin were read";
     }
     auto ptr = elements.front().release();
-    auto meta_cast = dynamic_cast<elem_meta*>(ptr);
-    this->sim_root = std::unique_ptr<elem_meta>(meta_cast);
+    auto meta_cast = dynamic_cast<element*>(ptr);
+    this->sim.set_root(std::move(std::unique_ptr<element>(meta_cast)));
 }
