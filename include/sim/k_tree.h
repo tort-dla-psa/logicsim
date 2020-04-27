@@ -20,8 +20,8 @@ struct node {
 template <class T, class node_allocator = std::allocator<node<T>>>
 class k_tree {
     using node_ = node<T>;
-    node_allocator alloc_;
-    node_* m_root, *foot;
+    node_allocator m_alloc_;
+    node_* m_root, *m_foot;
 public:
     typedef T* pointer;
     typedef T  value_type;
@@ -168,30 +168,29 @@ public:
             iterator_base(n){}
 
         auto& operator++(){
-            assert(this->node_);
-            if(!this->node_->neighbour_next) {
-                this->node_ = this->node_->parent;
+            assert(this->n);
+            if(!this->n->neighbour_next) {
+                this->n= this->n->parent;
             } else {
-                this->node_ = this->node_->neighbour_next;
-                while(this->node_->children_beg)
-                    this->node_=this->node_->children_beg;
+                this->node_ = this->n->neighbour_next;
+                children_begin(this->n);
             }
             return *this;
         }
         auto& operator--(){
-            assert(this->node_);
-            if(!this->node_->children_end){
-                while(!this->node_->neighbour_prev){	
-                    this->node_ = this->node_->parent;
+            assert(this->n);
+            if(!this->n->children_end){
+                while(!this->n->neighbour_prev){	
+                    this->n = this->n->parent;
                 }
-                this->node_=this->node_->neighbour_prev;
+                this->n = this->n->neighbour_prev;
             } else {
-                this->node_=this->node_->children_end;
+                this->n = this->n->children_end;
             }
             return *this;
         }
-        auto  operator++(const size_t &){ return do_increment(this); }
-        auto  operator--(const size_t &){ return do_decrement(this); }
+        auto  operator++(int){ return do_increment(this); }
+        auto  operator--(int){ return do_decrement(this); }
         auto& operator+=(size_t num){ return do_increment_ref(this, num); }
         auto& operator-=(size_t num){ return do_decrement_ref(this, num); }
     };
@@ -224,7 +223,7 @@ public:
             }
             return (*this);
         }
-        auto  operator++(const size_t &){ return do_increment(this); }
+        auto  operator++(int){ return do_increment(this); }
         auto& operator+=(const size_t &num){ return do_increment_ref(this, num); }
     private:
         std::queue<node_*> travers_q;
@@ -254,7 +253,7 @@ public:
             }
             return *this;
         }
-        auto  operator++(const size_t &){ return do_increment(this); }
+        auto  operator++(int){ return do_increment(this); }
         auto  operator--(const size_t &){ return do_decrement(this); }
         auto& operator+=(size_t num){ return do_increment_ref(this, num); }
         auto& operator-=(size_t num){ return do_decrement_ref(this, num); }
@@ -310,8 +309,8 @@ public:
             iterator_base::get_children_end(this->n);
             return *this;
         }
-        auto  operator++(const size_t&){ do_increment(this); }
-        auto  operator--(const size_t&){ do_decrement(this); }
+        auto  operator++(int){ do_increment(this); }
+        auto  operator--(int){ do_decrement(this); }
         auto& operator+=(const size_t &num){ do_increment_ref(this, num); }
         auto& operator-=(const size_t &num){ do_decrement_ref(this, num); }
     private:
@@ -334,8 +333,8 @@ public:
 
     ~k_tree(){
         clear();
-        alloc_.deallocate(m_root,1);
-        alloc_.deallocate(foot,1);
+        m_alloc_.deallocate(m_root,1);
+        m_alloc_.deallocate(m_foot,1);
     }
     inline auto& operator=(const k_tree<T, node_allocator> &rhs) {
         if(this != &rhs) {
@@ -358,7 +357,7 @@ public:
         return depth_first_node_first_iterator(m_root->neighbour_next);
     }
     inline auto depth_first_node_first_end() const{
-        return depth_first_node_first_iterator(foot);
+        return depth_first_node_first_iterator(m_foot);
     }
     inline auto depth_first_node_first_begin(const iterator_base &it) const{
         return depth_first_node_first_iterator(it.n);
@@ -368,13 +367,13 @@ public:
     }
     inline auto depth_first_children_first_begin() const {
         auto bak = m_root->neighbour_next;
-        while(bak->children_beg && bak!= foot){
+        while(bak->children_beg && bak!= m_foot){
             bak = bak->children_beg;
         }
         return depth_first_children_first_iterator(bak);
     }
     inline auto depth_first_children_first_end() const{
-        return depth_first_children_first_iterator(foot);
+        return depth_first_children_first_iterator(m_foot);
     }
     inline auto width_first_begin() const{
         return width_first_queue_iterator(m_root->neighbour_next);
@@ -431,7 +430,7 @@ public:
         if(!m_root){
             return;
         }
-        while(m_root->neighbour_next != foot) {
+        while(m_root->neighbour_next != m_foot) {
             auto it = depth_first_node_first_iterator(m_root->neighbour_next);
             erase(it);
         }
@@ -453,7 +452,7 @@ public:
             cur->neighbour_next->neighbour_prev; 
         nd_retie2 = cur->neighbour_prev;
 
-        alloc_.deallocate(cur, 1);
+        m_alloc_.deallocate(cur, 1);
         return ret;
     }
 
@@ -470,14 +469,14 @@ public:
             cur = cur->neighbour_next;
             auto it = depth_first_node_first_iterator(prev); //shadows "it"
             erase_children(it);
-            alloc_.deallocate(prev, 1);
+            m_alloc_.deallocate(prev, 1);
         }
         it.n->children_beg = it.n->children_end = nullptr;
     }
 
     inline auto set_root(T&& x){
-        assert(m_root->neighbour_next == foot);
-        auto it = depth_first_node_first_iterator(foot);
+        assert(m_root->neighbour_next == m_foot);
+        auto it = depth_first_node_first_iterator(m_foot);
         return insert_before(it, std::move(x));
     }
 
@@ -489,7 +488,7 @@ public:
         assert(it.n != m_root);
         assert(it.n);
 
-        node_* tmp = alloc_.allocate(1, 0);
+        node_* tmp = m_alloc_.allocate(1, 0);
         tmp->value = std::move(x);
         tmp->parent = it.n;
 
@@ -507,7 +506,7 @@ public:
         assert(it.n != m_root);
         assert(it.n);
 
-        auto tmp = alloc_.allocate(1, 0);
+        auto tmp = m_alloc_.allocate(1, 0);
         tmp->value = std::move(x);
         tmp->parent = it.n;
 
@@ -521,7 +520,7 @@ public:
     }
 
     inline auto insert_before(const iterator_base &it, T&& x){
-        auto tmp = alloc_.allocate(1,0);
+        auto tmp = m_alloc_.allocate(1,0);
 
         tmp->parent = it.n->parent;
         tmp->neighbour_next = it.n;
@@ -537,7 +536,7 @@ public:
         return depth_first_node_first_iterator(tmp);
     }
     inline auto insert_after(const iterator_base &it, T&& x) {
-        auto tmp = alloc_.allocate(1,0);
+        auto tmp = m_alloc_.allocate(1,0);
 
         tmp->parent = it.n->parent;
         tmp->neighbour_prev = it.n;
@@ -559,20 +558,20 @@ public:
     }
 
     inline auto root_prepend(T&& x) {
-        if(m_root->neighbour_next == foot) {
+        if(m_root->neighbour_next == m_foot) {
             return this->set_root(x);
         }
         auto bak = m_root->neighbour_next;
-        insert_before(depth_first_node_first_iterator(foot), x);
+        insert_before(depth_first_node_first_iterator(m_foot), x);
 
         auto new_head_node = m_root->neighbour_next->neighbour_next;
         m_root->neighbour_next = new_head_node;
         new_head_node->children_beg = bak;
         new_head_node->children_end = bak;
-        new_head_node->neighbour_next = foot;
+        new_head_node->neighbour_next = m_foot;
         new_head_node->neighbour_prev = m_root;
 
-        foot->neighbour_prev = new_head_node;
+        m_foot->neighbour_prev = new_head_node;
 
         bak->neighbour_next = bak->neighbour_prev = nullptr;
         bak->parent = new_head_node;
@@ -638,7 +637,7 @@ public:
 
     inline size_t max_depth()const{
         size_t ret;
-        for(auto it = m_root->neighbour_next; it != foot; it = it->neighbour_next){
+        for(auto it = m_root->neighbour_next; it != m_foot; it = it->neighbour_next){
             ret = std::max(ret, max_depth(it));
         }
         return ret;
@@ -646,7 +645,7 @@ public:
     inline size_t max_depth(const iterator_base &it) const{
         auto tmp = it.n;
 
-        if(tmp || tmp == m_root || tmp == foot)
+        if(tmp || tmp == m_root || tmp == m_foot)
             return 0;
 
         long long curdepth = 0, maxdepth = 0;
@@ -690,14 +689,14 @@ public:
         return ret;
     }
     inline bool valid(const iterator_base &it) const{
-        return !(it.n==0 || it.n==foot || it.n==m_root);
+        return !(it.n==0 || it.n==m_foot || it.n==m_root);
     }
 private:
     inline void p_init(){ 
-        m_root = alloc_.allocate(1, 0);
-        foot = alloc_.allocate(1, 0);
-        foot->neighbour_prev = m_root;
-        m_root->neighbour_next = foot;
+        m_root = m_alloc_.allocate(1, 0);
+        m_foot = m_alloc_.allocate(1, 0);
+        m_foot->neighbour_prev = m_root;
+        m_root->neighbour_next = m_foot;
     }
 
     void p_help_construct_children(const depth_first_node_first_iterator &dst,
