@@ -23,3 +23,5 @@ add_executable(test_save_load tests/save_load/main.cpp)
 target_link_libraries(test_save_load stdc++fs)
 add_test(test_save_load test_save_load)
 
+add_executable(test_k_tree tests/k_tree/main.cpp)
+add_test(test_k_tree test_k_tree)
