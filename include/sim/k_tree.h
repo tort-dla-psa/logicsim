@@ -12,9 +12,9 @@ template<class T>
 struct node {
     T value;
 
-    node *parent;
-    node *neighbour_next, *neighbour_prev;
-    node *children_beg, *children_end;
+    node *parent = nullptr,
+        *neighbour_next = nullptr, *neighbour_prev = nullptr,
+        *children_beg = nullptr, *children_end = nullptr;
 };
 
 template <class T, class node_allocator = std::allocator<node<T>>>
@@ -488,7 +488,8 @@ public:
         assert(it.n != m_root);
         assert(it.n);
 
-        node_* tmp = m_alloc_.allocate(1, 0);
+        auto tmp = m_alloc_.allocate(1, 0);
+        m_alloc_.construct(tmp);
         tmp->value = std::move(x);
         tmp->parent = it.n;
 
@@ -507,6 +508,7 @@ public:
         assert(it.n);
 
         auto tmp = m_alloc_.allocate(1, 0);
+        m_alloc_.construct(tmp);
         tmp->value = std::move(x);
         tmp->parent = it.n;
 
@@ -521,6 +523,8 @@ public:
 
     inline auto insert_before(const iterator_base &it, T&& x){
         auto tmp = m_alloc_.allocate(1,0);
+        m_alloc_.construct(tmp);
+        tmp->value = std::move(x);
 
         tmp->parent = it.n->parent;
         tmp->neighbour_next = it.n;
@@ -537,6 +541,8 @@ public:
     }
     inline auto insert_after(const iterator_base &it, T&& x) {
         auto tmp = m_alloc_.allocate(1,0);
+        m_alloc_.construct(tmp);
+        tmp->value = std::move(x);
 
         tmp->parent = it.n->parent;
         tmp->neighbour_prev = it.n;
@@ -559,7 +565,7 @@ public:
 
     inline auto root_prepend(T&& x) {
         if(m_root->neighbour_next == m_foot) {
-            return this->set_root(x);
+            return this->set_root(std::move(x));
         }
         auto bak = m_root->neighbour_next;
         insert_before(depth_first_node_first_iterator(m_foot), x);
@@ -695,6 +701,8 @@ private:
     inline void p_init(){ 
         m_root = m_alloc_.allocate(1, 0);
         m_foot = m_alloc_.allocate(1, 0);
+        m_root->neighbour_prev = m_root->children_beg = m_root->children_end = m_root->parent = nullptr;
+        m_foot->neighbour_next = m_foot->children_beg = m_foot->children_end = m_foot->parent = nullptr;
         m_foot->neighbour_prev = m_root;
         m_root->neighbour_next = m_foot;
     }
