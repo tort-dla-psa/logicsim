@@ -410,7 +410,7 @@ void sim_interface::showContextMenu(const QPoint &p){
 }
 
 void sim_interface::mouseMoveEvent(QMouseEvent *e){
-    //setFocus();
+    setFocus();
     this->mouse_pos_prev_move = this->mouse_pos;
     this->mouse_pos = e->pos();
     auto x = e->x();
@@ -729,7 +729,7 @@ void sim_interface::add_elem_meta(){
 }
 void sim_interface::save_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
-    std::vector<uint8_t> bin = elem_file_saver::to_bin(sim.root()->get());
+    std::vector<uint8_t> bin = elem_file_saver::to_bin(sim.root());
     //TODO:check if file exists
     elem_file_saver::save_bin(bin.begin(), bin.end(), std_path);
 }
@@ -744,5 +744,7 @@ void sim_interface::load_sim(QString path){
     }
     auto ptr = elements.front().release();
     auto meta_cast = dynamic_cast<element*>(ptr);
-    this->sim.set_root(std::move(std::unique_ptr<element>(meta_cast)));
+    std::unique_ptr<element> un_ptr(meta_cast);
+    class sim tmp(std::move(un_ptr)); // to avoid name collision
+    this->sim = std::move(tmp);
 }

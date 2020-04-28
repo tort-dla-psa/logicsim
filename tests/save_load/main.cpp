@@ -17,16 +17,21 @@ void print_diff(std::vector<uint8_t>::const_iterator begin,
         begin2++;
     }
 }
+void print_diff(std::vector<std::unique_ptr<element>> &elements){
+    for(auto &elem:elements){
+    }
+};
 
 int main(){
-    auto root1 = std::make_unique<elem_meta>("root");
+    class sim sim;
+    auto root1 = sim.root();
     auto and_elem = std::make_unique<elem_and>("and1");
     auto not_elem = std::make_unique<elem_not>("not1");
     and_elem->get_out(0)->tie_input(not_elem->get_in(0));
-    root1->emplace_back(std::move(and_elem));
-    root1->emplace_back(std::move(not_elem));
+    sim.emplace(root1, std::move(and_elem));
+    sim.emplace(root1, std::move(not_elem));
 
-    auto bin_save = elem_file_saver::to_bin(root1.get());
+    auto bin_save = elem_file_saver::to_bin(sim.root());
     auto path = std::filesystem::path("/tmp/sim_save.sim");
     if(std::filesystem::exists(path)){
         std::filesystem::remove(path);
@@ -44,7 +49,7 @@ int main(){
     auto it = bin_load.cbegin();
     elem_file_saver::from_bin(it, elems_load);
     auto cast = dynamic_cast<elem_meta*>(elems_load.front().get());
-    if(*cast != *root1.get()){
+    if(*cast != *(elem_meta*)((*root1).get())){
         std::filesystem::remove(path);
         throw std::runtime_error("saved and loaded elements are not the same");
     }

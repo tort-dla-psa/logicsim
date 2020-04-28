@@ -241,12 +241,12 @@ public:
 
         auto& operator++(){
             if(this->n)
-                this->n = this->n->neighbours_next;
+                this->n = this->n->neighbour_next;
             return *this;
         }
         auto& operator--(){
             if(this->n){
-                this->n = this->n->neighbours_prev;
+                this->n = this->n->neighbour_prev;
             } else {
                 assert(parent_);
                 this->n = parent_->children_end;
@@ -254,11 +254,12 @@ public:
             return *this;
         }
         auto  operator++(int){ return do_increment(this); }
-        auto  operator--(const size_t &){ return do_decrement(this); }
+        auto  operator--(int){ return do_decrement(this); }
         auto& operator+=(size_t num){ return do_increment_ref(this, num); }
         auto& operator-=(size_t num){ return do_decrement_ref(this, num); }
     private:
     friend class iterator_base;
+    friend class k_tree;
         node_* parent_;
     };
 
@@ -338,7 +339,7 @@ public:
     }
     inline auto& operator=(const k_tree<T, node_allocator> &rhs) {
         if(this != &rhs) {
-            p_copy(this);
+            p_copy(rhs);
         }
         return (*this);
     }
@@ -464,7 +465,7 @@ public:
         node_* cur = it.n->children_beg,
             *prev;
 
-        while(!cur) {
+        while(cur) {
             prev = cur;
             cur = cur->neighbour_next;
             auto it = depth_first_node_first_iterator(prev); //shadows "it"
@@ -474,12 +475,18 @@ public:
         it.n->children_beg = it.n->children_end = nullptr;
     }
 
+    inline auto set_root(T& x){
+        return set_root(std::move(x));
+    }
     inline auto set_root(T&& x){
         assert(m_root->neighbour_next == m_foot);
         auto it = depth_first_node_first_iterator(m_foot);
         return insert_before(it, std::move(x));
     }
 
+    inline auto child_append(const iterator_base &it, T& x){
+        return child_append(it, std::move(x));
+    }
     inline auto child_append(const iterator_base &it, T&& x){
         // If your program fails here you probably used 'append_child' to add the top
         // node_ to an empty k_tree. From version 1.45 the top element should be added
@@ -493,11 +500,10 @@ public:
         tmp->value = std::move(x);
         tmp->parent = it.n;
 
-        if(it.n->children_end) {
-            it.n->children_end->neighbour_next = tmp;
-        } else {
-            it.n->children_beg = tmp;
-        }
+        auto& nd_tie = (it.n->children_end)? it.n->children_end->neighbour_next:
+            it.n->children_beg;
+        nd_tie =tmp;
+
         tmp->neighbour_prev = it.n->children_end;
         it.n->children_end = tmp;
         return depth_first_node_first_iterator(tmp);
@@ -521,7 +527,13 @@ public:
         return depth_first_node_first_iterator(tmp);
     }
 
-    inline auto insert_before(const iterator_base &it, T&& x){
+    template<class It>
+    inline auto insert_before(It it, T&& x){
+        if(!it.n) {
+            it.n = m_foot;
+        }
+        assert(it.n != m_root);
+
         auto tmp = m_alloc_.allocate(1,0);
         m_alloc_.construct(tmp);
         tmp->value = std::move(x);
@@ -537,9 +549,12 @@ public:
         } else {
             tmp->neighbour_prev->neighbour_next = tmp;
         }
-        return depth_first_node_first_iterator(tmp);
+        return It(tmp);
     }
-    inline auto insert_after(const iterator_base &it, T&& x) {
+    inline auto insert_after(iterator_base it, T&& x) {
+        if(!it.n) {
+            it.n = m_foot;
+        }
         auto tmp = m_alloc_.allocate(1,0);
         m_alloc_.construct(tmp);
         tmp->value = std::move(x);
@@ -558,8 +573,8 @@ public:
         return depth_first_node_first_begin(tmp);
     }
 
-    inline auto set_value(const iterator_base &it, T&& x){
-        it.n = std::move(x);
+    inline auto set_value(iterator_base &it, T&& x){
+        it.n->value = std::move(x);
         return it;
     }
 
@@ -715,7 +730,7 @@ private:
         if(rhs_src_opt.has_value()){
             rhs_src = *rhs_src_opt;
         }else{
-            rhs_src = rhs.m_root();
+            rhs_src = rhs.m_root;
         }
 
         auto child_it = rhs.children_begin(rhs_src);
@@ -733,8 +748,9 @@ private:
         }
         clear();
 
-        set_root(*rhs.m_root());
-        p_help_construct_children(this->m_root(), rhs, rhs.m_root());
+        auto rt = rhs.m_root;
+        set_root(rt->value);
+        p_help_construct_children(this->m_root, rhs, rhs.m_root);
     }
 
     /// Comparator class for two nodes of a k_tree (used for sorting and searching).

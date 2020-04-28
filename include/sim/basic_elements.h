@@ -148,7 +148,7 @@ public:
 };
 class elem_out final :public elem_gate<gate_in, gate_out>{
     using element::get_out;
-    friend class elem_meta;
+    friend class sim;
 public:
     elem_out(const std::string &name, const size_t &width=1)
         :elem_gate(name, name+"_out", width),
@@ -184,7 +184,7 @@ public:
 
 class elem_in final :public elem_gate<gate_out, gate_in_active<elem_in>>{
     using element::get_in;
-    friend class elem_meta;
+    friend class sim;
 public:
     elem_in(const std::string &name, const size_t &width=1)
         :elem_gate(name, name+"_in", width),
