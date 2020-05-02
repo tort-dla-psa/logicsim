@@ -1,4 +1,5 @@
 build
 .vscode
 *.pro
+submodules
 CMakeLists.txt.user

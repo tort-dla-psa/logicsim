@@ -13,9 +13,9 @@ private:
     friend class elem_file_saver;
     ins_vec ins;
 public:
-    gate_out(const std::string &name, const size_t &width=1)
-        :gate(name, width),
-        nameable(name)
+    gate_out(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
+        :gate(name, width, parent_id),
+        nameable(name, parent_id)
     {}
     ~gate_out(){}
 
@@ -67,6 +67,7 @@ public:
     auto get_tied_rend()const   { return ins.rend(); }
     auto get_tied_crend()const  { return ins.rend(); }
     auto& get_tied()const       { return ins; }
+    auto& get_tied()            { return ins; }
 
     friend bool operator==(const gate_out &lhs, const gate_out &rhs){
         const nameable &lhs_n(lhs);

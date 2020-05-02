@@ -729,22 +729,14 @@ void sim_interface::add_elem_meta(){
 }
 void sim_interface::save_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
-    std::vector<uint8_t> bin = elem_file_saver::to_bin(sim.root());
-    //TODO:check if file exists
-    elem_file_saver::save_bin(bin.begin(), bin.end(), std_path);
+    elem_file_saver saver;
+    auto json = saver.to_json(sim.begin(), sim.end());
+    saver.save_json(json, std_path);
 }
 void sim_interface::load_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
-    auto bin = elem_file_saver::load_bin(std_path);
-    std::vector<std::unique_ptr<element>> elements;
-    auto it = bin.cbegin();
-    elem_file_saver::from_bin(it, elements);
-    if(it != bin.cend()){
-        qWarning()<<"NOTE: not all values from bin were read";
-    }
-    auto ptr = elements.front().release();
-    auto meta_cast = dynamic_cast<element*>(ptr);
-    std::unique_ptr<element> un_ptr(meta_cast);
-    class sim tmp(std::move(un_ptr)); // to avoid name collision
+    elem_file_saver loader;
+    auto json = loader.load_json(std_path);
+    class sim tmp(loader.from_json(json)); // to avoid name collision
     this->sim = std::move(tmp);
 }

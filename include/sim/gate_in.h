@@ -3,9 +3,9 @@
 
 class gate_in:public gate{
 public:
-    gate_in(const std::string &name, size_t width=1)
-        :gate(name, width),
-        nameable(name)
+    gate_in(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
+        :gate(name, width, parent_id),
+        nameable(name, parent_id)
     {}
     ~gate_in(){}
 };
@@ -18,11 +18,15 @@ class gate_in_active:public gate_in{
     bool m_active;
     Parent* parent;
 public:
-    gate_in_active(const std::string &name, const size_t &width=1,
-        Parent *parent=nullptr)
-        :gate_in(name, width),
-        nameable(name),
+    gate_in_active(const std::string &name, const size_t &width, Parent *parent)
+        :gate_in(name, width, parent->get_id()),
+        nameable(name, parent->get_id()),
         parent(parent)
+    {}
+
+    gate_in_active(const std::string &name, const size_t &width)
+        :gate_in(name, width),
+        nameable(name, 0)
     {}
 
     void set_active(bool active){

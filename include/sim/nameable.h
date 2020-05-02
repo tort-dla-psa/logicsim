@@ -3,8 +3,10 @@
 
 class nameable{
     friend class elem_file_saver;
+    friend class elem_in;
+    friend class elem_out;
     std::string name;
-    size_t id;
+    size_t id, parent_id;
 
     class id_assigner{
     private:
@@ -21,13 +23,16 @@ class nameable{
         }
     };
 public:
-    nameable(const std::string &name)
-    {
+    nameable(const std::string &name, const size_t &parent_id) {
         this->set_name(name);
         this->id = id_assigner::get_instance().get_id();
+        this->parent_id = parent_id;
     }
     virtual size_t get_id()const{
         return id;
+    }
+    virtual size_t get_parent_id()const{
+        return parent_id;
     }
     const std::string& get_name()const{
         return name;

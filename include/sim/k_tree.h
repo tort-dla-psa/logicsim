@@ -42,7 +42,7 @@ public:
         }
 
         template<class Type>
-        Type do_decrement(Type*& ptr, const size_t&){
+        Type do_decrement(Type* ptr){
             auto copy = *ptr;
             --(*ptr);
             return copy;
@@ -58,7 +58,7 @@ public:
         }
 
         template<class Type>
-        Type do_increment(Type*& ptr, const size_t&){
+        Type do_increment(Type* ptr){
             auto copy = *ptr;
             ++(*ptr);
             return copy;
@@ -156,8 +156,8 @@ public:
             return *this;
         }
 
-        auto  operator++(int){ return do_increment(this); }
-        auto  operator--(int){ return do_decrement(this); }
+        auto  operator++(int){ return iterator_base::do_increment(this); }
+        auto  operator--(int){ return iterator_base::do_decrement(this); }
         auto& operator+=(size_t num){ return do_increment_ref(this, num); }
         auto& operator-=(size_t num){ return do_decrement_ref(this, num); }
     };

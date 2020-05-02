@@ -17,8 +17,8 @@ protected:
         lg.log(this->get_name()+"("+std::to_string(get_id())+")", msg);
     }
 public:
-    gate(const std::string &name, const size_t &width)
-        :nameable(name),
+    gate(const std::string &name, const size_t &width=1, const size_t &id=1)
+        :nameable(name, id),
         lg(logger::get_instance())
     {
         set_width(width);

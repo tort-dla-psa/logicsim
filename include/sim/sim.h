@@ -9,21 +9,35 @@
 #include "k_tree.h"
 
 class sim{
+public:
     using k_tree_ = tree_ns::k_tree<std::unique_ptr<element>>;
     using k_tree_it = k_tree_::depth_first_node_first_iterator;
 
+private:
     k_tree_ elems;
 public:
     sim(k_tree_::value_type&& root){
         elems.set_root(std::move(root));
     }
 
+    sim(k_tree_&& tree){
+        elems = std::move(tree);
+    }
+
     sim():
-        sim(std::make_unique<element>("root"))
+        sim(std::make_unique<elem_meta>("root"))
     {}
 
     inline auto root(){
         return elems.root();
+    }
+
+    inline auto begin(){
+        return elems.depth_first_node_first_begin();
+    }
+
+    inline auto end(){
+        return elems.depth_first_node_first_end();
     }
 
     inline void tick(){
@@ -61,19 +75,24 @@ public:
         return elems.erase(it);
     }
 
+    inline k_tree_it emplace(k_tree_::value_type&& val){
+        auto it = elems.root();
+        return emplace(it, std::move(val));
+    }
+
     inline k_tree_it emplace(const k_tree_it& it, k_tree_::value_type&& val){
         auto &el = (*it);
         if(dynamic_cast<elem_meta*>(el.get())){
-            auto gate_in = dynamic_cast<elem_in*>(val.get());
-            auto gate_out = dynamic_cast<elem_out*>(val.get());
-            if(gate_in){
-                auto outer = gate_in->gt_outer;
-                el->emplace_back(outer);
-            }else if(gate_out){
-                auto outer = gate_out->gt_outer;
+            auto el_in = dynamic_cast<elem_in*>(val.get());
+            auto el_out = dynamic_cast<elem_out*>(val.get());
+            if(el_in){
+                auto outer = el_in->gt_outer;
                 el->emplace_back(outer);
                 //insert gate in left-most position to tick as early as possible
                 return elems.child_prepend(it, std::move(val));
+            }else if(el_out){
+                auto outer = el_out->gt_outer;
+                el->emplace_back(outer);
             }
         }
         return elems.child_append(it, std::move(val));

@@ -9,8 +9,8 @@ class elem_meta:public element{
 public:
 protected:
 public:
-    elem_meta(const std::string &name)
-        :element(name),
-        nameable(name)
+    elem_meta(const std::string &name, const size_t &parent_id=0)
+        :element(name, parent_id),
+        nameable(name, parent_id)
     {}
 };
