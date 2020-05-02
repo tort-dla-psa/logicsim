@@ -16,7 +16,7 @@ jobs:
       run: sudo apt install qt5-default g++-8 gcc-8
     - name: submodules
       working-directory: /home/runner/work/logicsim/logicsim/
-      run: git submodule update --recursive
+      run: git submodule init && git submodule update --recursive
     - name: cmake
       working-directory: /home/runner/work/logicsim/logicsim/
       run: sudo cmake . -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8
