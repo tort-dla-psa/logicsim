@@ -10,6 +10,7 @@ public:
     ~gate_in(){}
 };
 
+/*
 template<class Parent>
 class gate_in_active:public gate_in{
     friend class elem_meta;
@@ -59,3 +60,4 @@ public:
         return !(lhs == rhs);
     }
 };
+*/

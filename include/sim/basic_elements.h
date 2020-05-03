@@ -185,7 +185,7 @@ public:
     }
 };
 
-class elem_in final :public elem_gate<gate_out, gate_in_active<elem_in>>{
+class elem_in final :public elem_gate<gate_out, gate_in>{
     using element::get_in;
     friend class sim;
 public:
@@ -193,8 +193,8 @@ public:
         :elem_gate(name, name+"_in", width, parent_id),
         nameable(name, parent_id)
     {
-        auto cast = std::dynamic_pointer_cast<gate_in_active<elem_in>>(gt_outer);
-        cast->set_active(true);
+        //auto cast = std::dynamic_pointer_cast<gate_in_active<elem_in>>(gt_outer);
+        //cast->set_active(true);
         elem_gate::gt_outer->parent_id = this->get_id();
         elem_gate::gt->parent_id = this->get_id();
     }

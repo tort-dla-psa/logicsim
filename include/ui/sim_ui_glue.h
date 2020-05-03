@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 #include <utility>
+#include "nlohmann/json.hpp"
+#include "sim/k_tree.h"
 
 struct elem_view;
 struct gate_view;
@@ -83,9 +85,7 @@ struct elem_view_in:elem_view_gate{
 struct elem_view_out:elem_view_gate{
     std::shared_ptr<gate_view_out> gt_outer;
 };
-struct elem_view_meta:elem_view{
-    std::vector<std::shared_ptr<elem_view>> elems;
-};
+struct elem_view_meta:elem_view{};
 
 class sim_ui_glue{
 private:
@@ -94,21 +94,13 @@ private:
         this->global_root->id = 0;
         this->global_root->name = "root";
         this->root = global_root;
+        tree.set_root(root);
     };
 
-    auto prv_find_view_impl(const size_t &id)const{
-        auto &views = root->elems;
-        auto it = std::find_if(views.cbegin(), views.cend(),
-            [&id](const auto &v){
-                return v->id == id;
-            });
-        if(it != views.cend()){
-            return it;
-        }
-        auto mes = "No element with id "+std::to_string(id)+" in sim_glue";
-        throw std::runtime_error(mes);
-    }
+    using k_tree_ = tree_ns::k_tree<std::shared_ptr<elem_view>>;
+    using k_tree_it = k_tree_::depth_first_node_first_iterator;
 
+    k_tree_ tree;
     std::shared_ptr<elem_view_meta> global_root, root;
 public:
     static sim_ui_glue& get_instance(){
@@ -140,27 +132,25 @@ public:
     }
 
     auto find_view(const size_t &id){
-        auto &views = root->elems;
-        auto const_it = prv_find_view_impl(id);
-        auto dist = std::distance(views.cbegin(), const_it);
-        return views.begin()+dist;
-    }
-    auto find_view(const size_t &id)const{
-        return prv_find_view_impl(id);
+        auto predicate = [&id](auto el){
+            return el->id == id;
+        };
+        return std::find_if(tree.begin(), tree.end(), predicate);
     }
 
     auto find_views(const std::function<bool(const std::shared_ptr<elem_view>&)> &predicate)const{
-        auto &views = root->elems;
         std::vector<std::shared_ptr<elem_view>> result;
-        std::copy_if(views.begin(), views.end(), std::back_inserter(result), predicate);
+        std::copy_if(tree.begin(), tree.end(), std::back_inserter(result), predicate);
         return result;
     }
+
     auto find_views(const long &x, const long &y)const{
-        auto predicate = [&x, &y](auto view){
+        auto predicate = [&x, &y, this](auto view){
             return (view->x+view->w > x &&
                 view->x <= x &&
                 view->y+view->h > y &&
-                view->y <= y);
+                view->y <= y &&
+                view->parent == root);
         };
         return find_views(predicate);
     }
@@ -170,33 +160,36 @@ public:
         y = std::min(y, y+h);
         w = std::abs(w);
         h = std::abs(h);
-        auto predicate = [&x, &y, &w, &h](auto view){
+        auto predicate = [&x, &y, &w, &h, this](auto view){
             return view->x >= x &&
                 view->x < x+w &&
                 view->y >= y &&
-                view->y < y+h;
+                view->y < y+h &&
+                view->parent == root;
         };
         return find_views(predicate);
     }
 
-    const auto& access_views()const{
-        auto &views = root->elems;
-        return views;
+    k_tree_it add_view(std::shared_ptr<elem_view> view){
+        auto view_it = find_view(view->id);
+        if(view_it != tree.end()){
+            *view_it = view;
+            return view_it;
+        }
+        auto root_it = find_view(root->id);
+        return add_view(root_it, view);
     }
 
-    void add_view(const std::shared_ptr<elem_view> &view){
-        auto &views = root->elems;
-        try{
-            auto it = find_view(view->id);
-            *it = view;
-        }catch(std::runtime_error &e){ //not found
-            views.emplace_back(view);
-            view->parent = root;
+    k_tree_it add_view(k_tree_it it, std::shared_ptr<elem_view> &view){
+        auto meta_cast = std::dynamic_pointer_cast<elem_view_meta>(*it);
+        if(!meta_cast){
+            throw std::runtime_error("attempt to add sub-element to an element that is not meta");
         }
+        view->parent = meta_cast;
+        return tree.child_append(it, view);
     }
 
     void del_view(const size_t &id){
-        auto &views = root->elems;
         auto it = find_view(id);
         auto el = *it;
         for(auto &gt_in:el->gates_in){
@@ -217,7 +210,7 @@ public:
             gt_out->conn.clear();
         }
         el->gates_out.clear();
-        views.erase(it);
+        tree.erase(it);
     }
 
     auto get_gate(const std::shared_ptr<elem_view>& view, int x, int y)const{
@@ -226,11 +219,12 @@ public:
         y -= view->y;
         auto &gates_in = view->gates_in;
         auto &gates_out = view->gates_out;
-        auto predicate = [&x, &y](auto gate){
+        auto predicate = [&x, &y, &view](auto gate){
             return gate->x-gate->w/2 <= x &&
                 gate->y-gate->h/2 <= y &&
                 gate->x+gate->w/2 > x &&
-                gate->y+gate->h/2 > y;
+                gate->y+gate->h/2 > y &&
+                gate->parent == view;
         };
         auto it_in = std::find_if(gates_in.begin(), gates_in.end(), predicate);
         if(it_in != gates_in.end()){
@@ -246,21 +240,22 @@ public:
     }
 
     auto get_gates(int x, int y)const{
-        auto &views = root->elems;
         std::vector<std::shared_ptr<gate_view>> gates;
-        auto predicate = [](auto gate, int x_, int y_){
+        auto predicate = [](auto gate, auto root, int x_, int y_){
             return gate->x <= x_ &&
                 gate->y <= y_ &&
                 gate->x+gate->w > x_ &&
-                gate->y+gate->h > y_;
+                gate->y+gate->h > y_ &&
+                gate->parent->parent == root;
         };
-        for(auto &view:views){
+        for(auto &view:tree){
             int x_ =  x - view->x;
             int y_ =  y - view->y;
-            auto &gates_in = view->gates_in;
-            auto &gates_out = view->gates_out;
-            auto tmp_predicate = [&x_, &y_, &predicate](auto ptr){
-                return predicate(ptr, x_, y_);
+            auto elem = std::dynamic_pointer_cast<elem_view>(view);
+            auto &gates_in = elem->gates_in;
+            auto &gates_out = elem->gates_out;
+            auto tmp_predicate = [&x_, &y_, &predicate, this](auto ptr){
+                return predicate(ptr, root, x_, y_);
             };
             std::copy_if(gates_in.begin(), gates_in.end(), std::back_inserter(gates), tmp_predicate);
             std::copy_if(gates_out.begin(), gates_out.end(), std::back_inserter(gates), tmp_predicate);
@@ -286,5 +281,14 @@ public:
             tie(cast_in, cast_out);
             return;
         }
+    }
+
+    nlohmann::json to_json()const{
+        nlohmann::json j;
+        for(auto el:tree){
+        }
+    }
+
+    void from_json(const nlohmann::json &j){
     }
 };

@@ -345,12 +345,13 @@ void sim_interface::cut_items_cm(){
     update();
 }
 void sim_interface::go_up_cm(){
-    auto root = glue.get_root();
-    std::shared_ptr<elem_view> view = root;
-    place_gates_in(view, *sim.get_by_id(root->id));
-    place_gates_out(view, *sim.get_by_id(root->id));
-    if(root->parent){
-        auto meta_cast = std::dynamic_pointer_cast<elem_view_meta>(root->parent);
+    auto root_view = glue.get_root();
+    std::shared_ptr<elem_view> view = root_view;
+    auto &real_root = *sim.get_by_id(root_view->id);
+    place_gates_in(view, real_root);
+    place_gates_out(view, real_root);
+    if(root_view->parent){
+        auto meta_cast = std::dynamic_pointer_cast<elem_view_meta>(root_view->parent);
         dive_into_meta(meta_cast);
     }
 }

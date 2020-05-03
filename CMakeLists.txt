@@ -6,7 +6,8 @@ set (CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(make_ui)
-include_directories(include include/ui)
+include_directories(include include/ui
+	submodules/nlohmann-json/single_include)
 
 add_executable( ${PROJECT_NAME} main.cpp
 	${UI_SRCS}

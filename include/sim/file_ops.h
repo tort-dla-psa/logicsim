@@ -8,7 +8,7 @@
 #include "basic_elements.h"
 #include "helpers.h"
 #include "k_tree.h"
-#include "submodules/nlohmann-json/single_include/nlohmann/json.hpp"
+#include "nlohmann/json.hpp"
 
 class elem_file_saver{
     using k_tree_ = tree_ns::k_tree<std::unique_ptr<element>>;

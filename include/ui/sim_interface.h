@@ -72,7 +72,8 @@ class sim_interface : public draw_widget {
         this->mode = mode::create;
         auto elem = std::make_unique<Elem>(name);
         auto root_id = this->glue.get_root()->id;
-        auto &ref = *sim.emplace(std::move(elem));
+        auto root_it = sim.get_by_id(root_id);
+        auto &ref = *sim.emplace(root_it, std::move(elem));
         this->view = elem_to_view(ref);
         this->view->st == elem_view::state::creating;
     }
