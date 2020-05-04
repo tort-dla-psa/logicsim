@@ -82,6 +82,7 @@ public:
 
     inline k_tree_it emplace(const k_tree_it& it, k_tree_::value_type&& val){
         auto &el = (*it);
+        val->parent_id = el->get_id();
         if(dynamic_cast<elem_meta*>(el.get())){
             auto el_in = dynamic_cast<elem_in*>(val.get());
             auto el_out = dynamic_cast<elem_out*>(val.get());

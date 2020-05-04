@@ -5,6 +5,7 @@ class nameable{
     friend class elem_file_saver;
     friend class elem_in;
     friend class elem_out;
+    friend class sim;
     std::string name;
     size_t id, parent_id;
 

@@ -110,6 +110,8 @@ class elem_gate:public elem_basic, public Gt, public Gt_outer{
     using element::get_outs;
 
 protected:
+    friend class sim;
+    friend class elem_file_saver;
     std::shared_ptr<Gt> gt;
     std::shared_ptr<Gt_outer> gt_outer;
 public:
@@ -156,6 +158,7 @@ public:
     {
         elem_gate::gt_outer->parent_id = this->get_id();
         elem_gate::gt->parent_id = this->get_id();
+        this->element::ins.emplace_back(elem_gate::gt);
     }
     ~elem_out(){}
 
@@ -197,6 +200,7 @@ public:
         //cast->set_active(true);
         elem_gate::gt_outer->parent_id = this->get_id();
         elem_gate::gt->parent_id = this->get_id();
+        this->element::outs.emplace_back(elem_gate::gt);
     }
     ~elem_in(){}
 

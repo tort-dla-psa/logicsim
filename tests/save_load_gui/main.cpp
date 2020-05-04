@@ -1,12 +1,14 @@
 #include "sim/sim.h"
-#include "test-helpers.h"
 #include "sim/file_ops.h"
+#include "test-helpers.h"
+#include "ui/sim_ui_glue.h"
 #include <filesystem>
 #include <iostream>
 #include <iomanip>
 
 int main(){
-    auto path = std::filesystem::path("/tmp/sim_save.sim");
+    auto path = std::filesystem::path("/tmp/sim_save_gui.sim");
+
     auto sim1 = test_helpers::construct_test_sim();
 
     elem_file_saver saver;
