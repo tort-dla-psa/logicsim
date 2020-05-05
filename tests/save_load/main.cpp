@@ -10,7 +10,7 @@ int main(){
     auto sim1 = test_helpers::construct_test_sim();
 
     elem_file_saver saver;
-    auto json_save = saver.to_json(sim1.begin(), sim1.end());
+    auto json_save = saver.sim_to_json(sim1.begin(), sim1.end());
     if(std::filesystem::exists(path)){
         std::filesystem::remove(path);
     }
@@ -22,7 +22,7 @@ int main(){
     assert(json_load == json_save);
     std::cout<< " done\n";
 
-    auto sim2 = saver.from_json(json_load);
+    auto sim2 = saver.sim_from_json(json_load);
 
     auto assert_nameable = [](const auto &el1, const auto &el2){
         assert(el1->get_name() == el2->get_name());

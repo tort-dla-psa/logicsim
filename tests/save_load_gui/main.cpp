@@ -10,21 +10,31 @@ int main(){
     auto path = std::filesystem::path("/tmp/sim_save_gui.sim");
 
     auto sim1 = test_helpers::construct_test_sim();
+    auto glue = sim_ui_glue::get_instance();
+    size_t w = 1000, h = 1000;
+    for(auto &el:sim1){
+        auto parent_id = el->get_parent_id();
+        auto parent_view_it = glue.find_view(parent_id);
+        auto view = glue.elem_to_view(el);
+        glue.add_view(parent_view_it, view);
+    }
 
     elem_file_saver saver;
-    auto json_save = saver.to_json(sim1.begin(), sim1.end());
+    auto json_sim_save = saver.sim_to_json(sim1.begin(), sim1.end());
     if(std::filesystem::exists(path)){
         std::filesystem::remove(path);
     }
-    saver.save_json(json_save, path);
+    auto json_glue_save = saver.glue_to_json(glue.begin(), glue.end());
+    saver.save_json(json_sim_save, path);
 
-    auto json_load = saver.load_json(path);
+    auto json_sim_load = saver.load_json(path);
 
     std::cout<< "asserting that jsons are equal...";
-    assert(json_load == json_save);
+    assert(json_sim_load == json_sim_save);
     std::cout<< " done\n";
 
-    auto sim2 = saver.from_json(json_load);
+    auto sim2 = saver.sim_from_json(json_sim_load);
+    //auto glue2 = saver.glue_from_json(json_load);
 
     auto assert_nameable = [](const auto &el1, const auto &el2){
         assert(el1->get_name() == el2->get_name());

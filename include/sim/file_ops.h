@@ -8,11 +8,14 @@
 #include "basic_elements.h"
 #include "helpers.h"
 #include "k_tree.h"
+#include "sim_ui_glue.h"
 #include "nlohmann/json.hpp"
 
 class elem_file_saver{
-    using k_tree_ = tree_ns::k_tree<std::unique_ptr<element>>;
-    using k_tree_it = k_tree_::depth_first_node_first_iterator;
+    using k_tree_sim = tree_ns::k_tree<std::unique_ptr<element>>;
+    using k_tree_glue = tree_ns::k_tree<std::shared_ptr<elem_view>>;
+    using k_tree_sim_it = k_tree_sim::depth_first_node_first_iterator;
+    using k_tree_glue_it = k_tree_glue::depth_first_node_first_iterator;
 
     enum class types_gate{
         t_gt_in,
@@ -29,10 +32,17 @@ class elem_file_saver{
     };
 
     static types_gate p_gate_to_type(const gate* gt){
-        if(dynamic_cast<const gate_in*>(gt)){
-            return types_gate::t_gt_in;
-        }else if(dynamic_cast<const gate_out*>(gt)){
-            return types_gate::t_gt_out;
+        if(dynamic_cast<const gate_in*>(gt)){           return types_gate::t_gt_in;
+        }else if(dynamic_cast<const gate_out*>(gt)){    return types_gate::t_gt_out;
+        }else{
+            throw std::runtime_error("unknown type of gate to make gate_type");
+        }
+        return types_gate::t_gt_in; //unreachable
+    }
+
+    static types_gate p_gate_to_type(const gate_view* gt){
+        if(dynamic_cast<const gate_view_in*>(gt)){           return types_gate::t_gt_in;
+        }else if(dynamic_cast<const gate_view_out*>(gt)){    return types_gate::t_gt_out;
         }else{
             throw std::runtime_error("unknown type of gate to make gate_type");
         }
@@ -40,19 +50,39 @@ class elem_file_saver{
     }
 
     static std::shared_ptr<gate> p_type_to_gate(types_gate type, const std::string name){
-        if(type == types_gate::t_gt_in){
-            return std::make_shared<gate_in>(name);
-        }else if(type == types_gate::t_gt_out){
-            return std::make_shared<gate_out>(name);
+        if(type == types_gate::t_gt_in){        return std::make_shared<gate_in>(name);
+        }else if(type == types_gate::t_gt_out){ return std::make_shared<gate_out>(name);
         }else{
             throw std::runtime_error("unknown type of gate to make gate");
         }
         return nullptr; //unreachable
     }
 
-    static types_elem p_elem_to_type(const element* elem){
-        using namespace sim_helpers;
+    static std::shared_ptr<gate_view> p_type_to_gate_view(types_gate type, const std::string name){
+        std::shared_ptr<gate_view> view;
+        if(type == types_gate::t_gt_in){        view = std::make_shared<gate_view_in>();
+        }else if(type == types_gate::t_gt_out){ view = std::make_shared<gate_view_out>();
+        }else{
+            throw std::runtime_error("unknown type of gate to make gate");
+        }
+        view->name = name;
+        return view;
+    }
 
+    static types_elem p_elem_to_type(const elem_view* elem){
+        if(dynamic_cast<const elem_view_meta*>(elem)){       return types_elem::t_meta;
+        }else if(dynamic_cast<const elem_view_and*>(elem)){  return types_elem::t_and;
+        }else if(dynamic_cast<const elem_view_or*>(elem)){   return types_elem::t_or;
+        }else if(dynamic_cast<const elem_view_not*>(elem)){  return types_elem::t_not;
+        }else if(dynamic_cast<const elem_view_in*>(elem)){   return types_elem::t_in;
+        }else if(dynamic_cast<const elem_view_out*>(elem)){  return types_elem::t_out;
+        }else{
+            throw std::runtime_error("unknown type of element view to make element_type");
+        }
+        return types_elem::t_meta; //unreachable
+    }
+
+    static types_elem p_elem_to_type(const element* elem){
         if(dynamic_cast<const elem_meta*>(elem)){       return types_elem::t_meta;
         }else if(dynamic_cast<const elem_and*>(elem)){  return types_elem::t_and;
         }else if(dynamic_cast<const elem_or*>(elem)){   return types_elem::t_or;
@@ -78,19 +108,35 @@ class elem_file_saver{
         return nullptr; //unreachable
     }
 
-    void retie(k_tree_it begin, k_tree_it end){
+    static std::shared_ptr<elem_view> p_type_to_elem_view(const types_elem &type, const std::string &name){
+        std::shared_ptr<elem_view> view;
+        if(type == types_elem::t_meta){         view = std::make_shared<elem_view_meta>();
+        }else if(type == types_elem::t_and){    view = std::make_shared<elem_view_and>();
+        }else if(type == types_elem::t_or){     view = std::make_shared<elem_view_or>();
+        }else if(type == types_elem::t_not){    view = std::make_shared<elem_view_not>();
+        }else if(type == types_elem::t_in){     view = std::make_shared<elem_view_in>();
+        }else if(type == types_elem::t_out){    view = std::make_shared<elem_view_out>();
+        }else{
+            throw std::runtime_error("unknown type of element_type to make element");
+        }
+        view->name = name;
+        return view;
+    }
+
+    template<class It>
+    void retie(It begin, It end){
         for(auto el_it = begin; el_it != end; el_it++){
             auto &el = *el_it;
-            for(auto &out:el->get_outs()){
+            for(auto &out:el->outs){
                 //replace all "tied" placeholders in an out with real ins of other elements
-                for(auto &tied:out->get_tied()){
+                for(auto &tied:out->ins){
                     //get placeholder ids
-                    auto tied_id = tied->get_id();
-                    auto tied_parent_id = tied->get_parent_id();
+                    auto tied_id = tied->id;
+                    auto tied_parent_id = tied->parent_id;
                     //search placeholder parent
                     auto el_it = std::find_if(begin, end,
-                        [&tied_parent_id](const auto &el){
-                            return el->get_id() == tied_parent_id;
+                        [this, &tied_parent_id](const auto &el){
+                            return el->id == tied_parent_id;
                         });
                     if(el_it == end){
                         auto mes = "input id="+std::to_string(tied_id)+
@@ -99,26 +145,27 @@ class elem_file_saver{
                     }
                     //search real input in placeholder's parent
                     auto &el_parent = *el_it;
-                    auto in_it = std::find_if(el_parent->get_ins_begin(), el_parent->get_ins_end(),
-                        [&tied_id](const auto &gt){
-                            return gt->get_id() == tied_id;
+                    auto &parent_ins = el_parent->ins;
+                    auto in_it = std::find_if(parent_ins.begin(), parent_ins.end(),
+                        [this, &tied_id](const auto &gt){
+                            return gt->id == tied_id;
                         });
-                    if(in_it == el_parent->get_ins_end()){
+                    if(in_it == parent_ins.end()){
                         //if gate's parent doesn't contain desired gate,
                         //try redo search in it's parent in case
                         //if it's elem_in/elem_out inside elem_meta
                         auto el_parent_id = el_parent->parent_id;
                         auto el_it = std::find_if(begin, end,
                             [&el_parent_id](const auto &el){
-                                return el->get_id() == el_parent_id;
+                                return el->id == el_parent_id;
                             });
                         auto &el_parent_parent = *el_it;
-                        in_it = std::find_if(el_parent_parent->get_ins_begin(),
-                            el_parent_parent->get_ins_end(),
-                            [&tied_id](const auto &gt){
-                                return gt->get_id() == tied_id;
+                        auto &parent_ins = el_parent_parent->ins;
+                        in_it = std::find_if(parent_ins.begin(), parent_ins.end(),
+                            [this, &tied_id](const auto &gt){
+                                return gt->id == tied_id;
                             });
-                        if(in_it == el_parent_parent->get_ins_end()){
+                        if(in_it == parent_ins.end()){
                             auto mes = "element id="+std::to_string(tied_parent_id)+
                                 " has no gate_in id="+std::to_string(tied_id);
                             throw std::runtime_error(mes);
@@ -131,21 +178,22 @@ class elem_file_saver{
         }
     }
 
-    auto make_tree(std::vector<std::unique_ptr<element>>& elems){
+    template<class T>
+    auto make_tree(std::vector<T>& elems){
         auto root_it = std::find_if(elems.begin(), elems.end(), 
-            [](const auto &el){
-                return el->get_id() == 0;
+            [this](const auto &el){
+                return el->id == 0;
         });
         auto index = std::distance(root_it, elems.begin());
         auto root = std::move(elems.at(index));
         elems.erase(root_it);
 
-        k_tree_ tree(std::move(root));
+        tree_ns::k_tree<T> tree(std::move(root));
         for(auto &el:elems){
-            auto parent_id = el->get_parent_id();
+            const auto &parent_id = el->parent_id;
             auto it = std::find_if(tree.begin(), tree.end(),
-                [&parent_id](const auto &el){
-                    return el->get_id() == parent_id;
+                [this, &parent_id](const auto &el){
+                    return el->id == parent_id;
             });
             if(it != tree.end()){
                 tree.child_append(it, std::move(el));
@@ -156,10 +204,7 @@ class elem_file_saver{
 
 public:
 
-template<class It>
-auto to_json(It beg, It end){
-    using namespace sim_helpers;
-
+auto sim_to_json(k_tree_sim_it beg, k_tree_sim_it end){
     auto gate_to_json = [](const gate* gt){
         nlohmann::json gt_info{
             {"id", gt->get_id()},
@@ -210,7 +255,7 @@ auto to_json(It beg, It end){
     return result;
 }
 
-auto from_json(const nlohmann::json &j){
+auto sim_from_json(const nlohmann::json &j){
     auto gate_from_json = [this](const nlohmann::json& j) {
         auto type = j.at("type");
         auto gt = p_type_to_gate(type, j.at("name"));
@@ -251,7 +296,118 @@ auto from_json(const nlohmann::json &j){
     for(const auto &j_obj:j){
         elems.emplace_back(elem_from_json(j_obj));
     }
-    k_tree_ tree = make_tree(elems);
+    auto tree = make_tree(elems);
+    retie(tree.begin(), tree.end());
+    return tree;
+}
+
+auto glue_to_json(k_tree_glue_it beg, k_tree_glue_it end){
+    auto view_to_json = [](const view* v){
+        nlohmann::json view_info{
+            {"x", v->x},
+            {"y", v->y},
+            {"w", v->w},
+            {"h", v->h},
+            {"name", v->name},
+            {"id", v->id},
+            {"parent_id", v->parent_id},
+        };
+        return view_info;
+    };
+
+    auto gate_to_json = [&view_to_json](const gate_view* gt){
+        auto view_info = view_to_json(gt);
+        nlohmann::json gt_info{
+            {"width", gt->bit_width },
+            {"direction", (int)gt->dir },
+            {"type", p_gate_to_type(gt)},
+        };
+        gt_info += view_info;
+        auto out_cast = dynamic_cast<const gate_view_out*>(gt);
+        if(out_cast){
+            auto &conns = out_cast->ins;
+            std::vector<std::pair<size_t, size_t>> ids;
+            ids.reserve(conns.size());
+            for(auto &conn:conns){
+                ids.emplace_back(conn->id, conn->parent_id);
+            }
+            gt_info["tied"] = std::move(ids);
+        }
+        return gt_info;
+    };
+
+    auto elem_to_json = [&gate_to_json, &view_to_json](const elem_view* elem){
+        auto view_info = view_to_json(elem);
+        nlohmann::json result{
+            {"type", p_elem_to_type(elem)},
+        };
+        result += view_info;
+        std::vector<nlohmann::json> ins,outs;
+        for(auto &gt:elem->ins){
+            ins.emplace_back(gate_to_json(gt.get()));
+        }
+        for(auto &gt:elem->outs){
+            outs.emplace_back(gate_to_json(gt.get()));
+        }
+        result["ins"] = std::move(ins);
+        result["outs"] = std::move(outs);
+        return result;
+    };
+
+    nlohmann::json result;
+    for(auto view_it = beg; view_it != end; view_it++){
+        auto &view = *view_it;
+        auto j = elem_to_json(view.get());
+        result += j;
+    }
+    return result;
+}
+
+auto glue_from_json(const nlohmann::json &j){
+    auto gate_from_json = [this](const nlohmann::json& j) {
+        auto type = j.at("type");
+        auto gt = p_type_to_gate_view(type, j.at("name"));
+        gt->id = j.at("id");
+        gt->parent_id = j.at("parent_id");
+        gt->bit_width = j.at("width");
+        if(type == types_gate::t_gt_out){
+            auto gt_out = std::dynamic_pointer_cast<gate_view_out>(gt);
+            std::vector<std::pair<size_t, size_t>> placeholders;
+            j.at("tied").get_to(placeholders);
+            for(auto &p:placeholders){
+                auto in = std::make_shared<gate_view_in>();
+                in->parent_id = p.second;
+                in->id = p.first;
+                gt_out->ins.emplace_back(in);
+            }
+        }
+        return gt;
+    };
+
+    auto elem_from_json = [this, &gate_from_json](const nlohmann::json& j) {
+        auto el = p_type_to_elem_view(j.at("type"), j.at("name"));
+        el->id = j.at("id");
+        el->parent_id = j.at("parent_id");
+        auto &ins = el->ins;
+        auto &outs = el->outs;
+        ins.clear();
+        outs.clear();
+        for(auto &j_obj:j.at("ins")){
+            auto gt = gate_from_json(j_obj);
+            ins.emplace_back(std::dynamic_pointer_cast<gate_view_in>(gt));
+        }
+        for(auto &j_obj:j.at("outs")){
+            auto gt = gate_from_json(j_obj);
+            outs.emplace_back(std::dynamic_pointer_cast<gate_view_out>(gt));
+        }
+        return el;
+    };
+
+    std::vector<std::shared_ptr<elem_view>> elems;
+    for(const auto &j_obj:j){
+        elems.emplace_back(elem_from_json(j_obj));
+    }
+    auto tree = make_tree(elems);
     retie(tree.begin(), tree.end());
     return tree;
 }

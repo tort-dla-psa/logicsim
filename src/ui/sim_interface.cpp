@@ -12,8 +12,8 @@
 
 void sim_interface::connect_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2){
     bool valid = false;
-    auto gt_1_parent_it = sim.get_by_id(gate_view_1->parent->id);
-    auto gt_2_parent_it = sim.get_by_id(gate_view_2->parent->id);
+    auto gt_1_parent_it = sim.get_by_id(gate_view_1->parent_id);
+    auto gt_2_parent_it = sim.get_by_id(gate_view_2->parent_id);
     auto gt_1 = (*gt_1_parent_it)->find_gate(gate_view_1->id);
     auto gt_2 = (*gt_2_parent_it)->find_gate(gate_view_2->id);
 
@@ -71,10 +71,10 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::unique_ptr<ele
     view->id = id;
     view->dir = elem_view::direction::dir_right;
     view->st = elem_view::state::normal;
-    view->parent = glue.get_root();
+    view->parent_id = glue.get_root()->id;
 
-    place_gates_in(view, elem);
-    place_gates_out(view, elem);
+    place_ins(view, elem);
+    place_outs(view, elem);
 
     if(elem_in_cast){
         auto outer = std::make_shared<gate_view_in>();
@@ -87,7 +87,7 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::unique_ptr<ele
     }
     return view;
 }
-void sim_interface::place_gates_in(std::shared_ptr<elem_view> &view,
+void sim_interface::place_ins(std::shared_ptr<elem_view> &view,
     const std::unique_ptr<element> &elem)
 {
     if(elem->get_ins_size() == 0){
@@ -100,7 +100,7 @@ void sim_interface::place_gates_in(std::shared_ptr<elem_view> &view,
     gt_->w = this->default_gate_w;
     gt_->h = this->default_gate_h;
     gt_->x = ins_x;
-    gt_->parent = view;
+    gt_->parent_id = view->id;
     for(size_t i=0; i<elem->get_ins_size(); i++){
         auto gt = std::make_shared<gate_view_in>(*gt_);
         gt->y = ins_y;
@@ -109,10 +109,10 @@ void sim_interface::place_gates_in(std::shared_ptr<elem_view> &view,
         gt->id = gt_in->get_id();
         gt->name = gt_in->get_name();
         gt->bit_width = gt_in->get_width();
-        view->gates_in.emplace_back(gt);
+        view->ins.emplace_back(gt);
     }
 }
-void sim_interface::place_gates_out(std::shared_ptr<elem_view> &view,
+void sim_interface::place_outs(std::shared_ptr<elem_view> &view,
     const std::unique_ptr<element> &elem)
 {
     if(elem->get_outs_size() == 0){
@@ -125,7 +125,7 @@ void sim_interface::place_gates_out(std::shared_ptr<elem_view> &view,
     gt_->w = this->default_gate_w;
     gt_->h = this->default_gate_h;
     gt_->x = outs_x;
-    gt_->parent = view;
+    gt_->parent_id = view->id;
     for(size_t i=0; i<elem->get_outs_size(); i++){
         auto gt = std::make_shared<gate_view_out>(*gt_);
         gt->y = outs_y;
@@ -134,7 +134,7 @@ void sim_interface::place_gates_out(std::shared_ptr<elem_view> &view,
         gt->id = gt_out->get_id();
         gt->name = gt_out->get_name();
         gt->bit_width = gt_out->get_width();
-        view->gates_out.emplace_back(gt);
+        view->outs.emplace_back(gt);
     }
 }
 
@@ -156,10 +156,10 @@ void sim_interface::rotate_view(std::shared_ptr<elem_view> &view){
         x = coords.x();
         y = coords.y();
     };
-    for(auto &gate_in:view->gates_in){
+    for(auto &gate_in:view->ins){
         rotate(gate_in->x, gate_in->y);
     }
-    for(auto &gate_out:view->gates_out){
+    for(auto &gate_out:view->outs){
         rotate(gate_out->x, gate_out->y);
     }
 }
@@ -234,12 +234,12 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
         pnt.drawRect(rect);
     }
 
-    for(auto &gate:view->gates_in){
+    for(auto &gate:view->ins){
         pnt.drawRect(gate->x*cam.zoom, gate->y*cam.zoom,
             gate->w*cam.zoom, gate->h*cam.zoom);
         //pnt.drawText(gate->x, gate->y, QString::number(gate->id));
     }
-    for(auto &gate:view->gates_out){
+    for(auto &gate:view->outs){
         pnt.drawRect(gate->x*cam.zoom, gate->y*cam.zoom,
             gate->w*cam.zoom, gate->h*cam.zoom);
         //pnt.drawText(gate->x, gate->y, QString::number(gate->id));
@@ -249,14 +249,14 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     if(std::dynamic_pointer_cast<elem_view_gate>(view)){
         auto &gt_parent = *sim.get_by_id(view->id);
         std::shared_ptr<gate> gt;
-        for(auto gt_v_it = view->gates_in.begin(); !gt && gt_v_it != view->gates_in.end(); gt_v_it++){
+        for(auto gt_v_it = view->ins.begin(); !gt && gt_v_it != view->ins.end(); gt_v_it++){
             auto &gt_v = *gt_v_it;
             auto gt_tmp = gt_parent->find_gate(gt_v->id);
             if(gt_tmp){
                 gt = std::move(gt_tmp);
             }
         }
-        for(auto gt_v_it = view->gates_out.begin(); !gt && gt_v_it != view->gates_out.end(); gt_v_it++){
+        for(auto gt_v_it = view->outs.begin(); !gt && gt_v_it != view->outs.end(); gt_v_it++){
             auto &gt_v = *gt_v_it;
             auto gt_tmp = gt_parent->find_gate(gt_v->id);
             if(gt_tmp){
@@ -275,18 +275,19 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     draw_widget::draw_image(draw_x, draw_y, img);
     QPen pen_valid(Qt::black);
     QPen pen_invalid(Qt::red);
-    for(auto &gate:view->gates_out){
-        for(auto &cn:gate->conn){
-            auto &gt = cn->gate_in;
-            if(cn->valid){
+    for(auto &gate:view->outs){
+        auto &gate_parent = *glue.find_view(gate->parent_id);
+        for(auto &gt:gate->ins){
+            auto &gt_parent = *glue.find_view(gt->parent_id);
+            if(gt->bit_width == gate->bit_width){
                 draw_widget::set_pen(pen_valid);
             }else{
                 draw_widget::set_pen(pen_invalid);
             }
-            draw_widget::draw_line(gate->x+gate->parent->x+gate->w/2,
-                gate->y+gate->parent->y+gate->h/2,
-                gt->x+gt->parent->x+gt->w/2,
-                gt->y+gt->parent->y+gt->h/2);
+            draw_widget::draw_line(gate->x+gate_parent->x+gate->w/2,
+                gate->y+gate_parent->y+gate->h/2,
+                gt->x+gt_parent->x+gt->w/2,
+                gt->y+gt_parent->y+gt->h/2);
         }
     }
     draw_widget::set_pen(pen_valid);
@@ -348,10 +349,12 @@ void sim_interface::go_up_cm(){
     auto root_view = glue.get_root();
     std::shared_ptr<elem_view> view = root_view;
     auto &real_root = *sim.get_by_id(root_view->id);
-    place_gates_in(view, real_root);
-    place_gates_out(view, real_root);
-    if(root_view->parent){
-        auto meta_cast = std::dynamic_pointer_cast<elem_view_meta>(root_view->parent);
+    place_ins(view, real_root);
+    place_outs(view, real_root);
+    auto parent_it = glue.find_view(root_view->parent_id);
+    if(parent_it != glue.end()){
+        auto &parent = *parent_it;
+        auto meta_cast = std::dynamic_pointer_cast<elem_view_meta>(parent);
         dive_into_meta(meta_cast);
     }
 }
@@ -682,29 +685,24 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
         prop->set_view_value(this->view);
         auto gate_cast = std::dynamic_pointer_cast<gate_view>(view);
         if(gate_cast && prop->name() == "bit_w"){
-            auto view_parent_it = sim.get_by_id(view->parent->id);
+            auto view_parent_it = sim.get_by_id(view->parent_id);
             auto gt = (*view_parent_it)->find_gate(view->id);
             gt->set_width(gate_cast->bit_width);
+            /*
             auto func = [this, &gate_cast](std::shared_ptr<gate_view> gt){
                 gt->bit_width = gate_cast->bit_width;
-                for(auto &cn:gt->conn){
-                    bool prev = cn->valid;
-                    cn->check_valid();
-                    bool now = cn->valid;
-                    if(!prev && now){
-                        auto gt2 = cn->gate_in == gt?
-                            std::static_pointer_cast<gate_view>(cn->gate_out):
-                            std::static_pointer_cast<gate_view>(cn->gate_in);
-                        connect_gates(gt, gt2);
-                    }
-                }
+                auto gt2 = cn->gate_in == gt?
+                    std::static_pointer_cast<gate_view>(cn->gate_out):
+                    std::static_pointer_cast<gate_view>(cn->gate_in);
+                connect_gates(gt, gt2); //ISSUE: is it obsolete?
             };
-            for(auto &gt_out:view->gates_out){
+            for(auto &gt_out:view->outs){
                 func(gt_out);
             }
-            for(auto &gt_in:view->gates_in){
+            for(auto &gt_in:view->ins){
                 func(gt_in);
             }
+            */
         }
         update();
     }
@@ -731,13 +729,13 @@ void sim_interface::add_elem_meta(){
 void sim_interface::save_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
     elem_file_saver saver;
-    auto json = saver.to_json(sim.begin(), sim.end());
+    auto json = saver.sim_to_json(sim.begin(), sim.end());
     saver.save_json(json, std_path);
 }
 void sim_interface::load_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
     elem_file_saver loader;
     auto json = loader.load_json(std_path);
-    class sim tmp(loader.from_json(json)); // to avoid name collision
+    class sim tmp(loader.sim_from_json(json)); // to avoid name collision
     this->sim = std::move(tmp);
 }

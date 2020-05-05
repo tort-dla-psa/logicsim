@@ -59,23 +59,23 @@ properties::properties(QWidget* parent)
     prop->set_getter([](auto view){
         auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
         if(cast_in){
-            return QString::number(cast_in->gates_out.at(0)->bit_width);
+            return QString::number(cast_in->outs.at(0)->bit_width);
         }
         auto cast_out = std::dynamic_pointer_cast<elem_view_out>(view);
         if(cast_out){
-            return QString::number(cast_out->gates_in.at(0)->bit_width);
+            return QString::number(cast_out->ins.at(0)->bit_width);
         }
     }); 
     prop->set_setter([prop](auto view){
         auto le = prop->get_line_edit();
         auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
         if(cast_in){
-            cast_in->gates_out.at(0)->bit_width = le->text().toLong();
+            cast_in->outs.at(0)->bit_width = le->text().toLong();
             return;
         }
         auto cast_out = std::dynamic_pointer_cast<elem_view_out>(view);
         if(cast_out){
-            cast_out->gates_in.at(0)->bit_width = le->text().toLong();
+            cast_out->ins.at(0)->bit_width = le->text().toLong();
             return;
         }
     }); 

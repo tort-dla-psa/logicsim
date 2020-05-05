@@ -50,8 +50,8 @@ class sim_interface : public draw_widget {
 
     std::shared_ptr<elem_view> elem_to_view(const std::unique_ptr<element> &elem);
     std::shared_ptr<elem_view> elem_to_view(size_t id);
-    void place_gates_in(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
-    void place_gates_out(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
+    void place_ins(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
+    void place_outs(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
 
     void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
     void rotate_view(std::shared_ptr<elem_view> &view);
