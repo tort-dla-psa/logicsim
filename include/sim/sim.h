@@ -20,13 +20,19 @@ public:
         elems.set_root(std::move(root));
     }
 
-    sim(k_tree_&& tree){
+    sim(k_tree_ &&tree){
         elems = std::move(tree);
     }
 
     sim():
         sim(std::make_unique<elem_meta>("root"))
     {}
+
+    sim(const sim &rhs)=delete;
+    inline auto operator=(const sim &rhs)=delete;
+
+    sim(sim &&rhs)=default;
+    inline sim& operator=(sim &&rhs)=default;
 
     inline auto root(){
         return elems.root();

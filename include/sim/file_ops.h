@@ -316,13 +316,11 @@ auto glue_to_json(k_tree_glue_it beg, k_tree_glue_it end){
     };
 
     auto gate_to_json = [&view_to_json](const gate_view* gt){
-        auto view_info = view_to_json(gt);
-        nlohmann::json gt_info{
-            {"width", gt->bit_width },
-            {"direction", (int)gt->dir },
-            {"type", p_gate_to_type(gt)},
-        };
-        gt_info += view_info;
+        auto gt_info = view_to_json(gt);
+        gt_info["width"]= gt->bit_width;
+        gt_info["direction"]= (int)gt->dir;
+        gt_info["type"]= p_gate_to_type(gt);
+
         auto out_cast = dynamic_cast<const gate_view_out*>(gt);
         if(out_cast){
             auto &conns = out_cast->ins;
@@ -337,11 +335,8 @@ auto glue_to_json(k_tree_glue_it beg, k_tree_glue_it end){
     };
 
     auto elem_to_json = [&gate_to_json, &view_to_json](const elem_view* elem){
-        auto view_info = view_to_json(elem);
-        nlohmann::json result{
-            {"type", p_elem_to_type(elem)},
-        };
-        result += view_info;
+        auto result = view_to_json(elem);
+        result["type"] = p_elem_to_type(elem);
         std::vector<nlohmann::json> ins,outs;
         for(auto &gt:elem->ins){
             ins.emplace_back(gate_to_json(gt.get()));

@@ -19,7 +19,8 @@ auto to_bits(const T &val, bit_order order = bit_order::LSB){
         }
     }else{
         for(size_t i=0; i<size; i++){
-            bool bit = (val>>size-1-i)&1;
+            auto shift = size-1-i;
+            bool bit = (val>>shift)&1;
             vec.emplace_back(bit);
         }
     }

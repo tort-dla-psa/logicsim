@@ -27,6 +27,7 @@ struct view{
 
     virtual ~view(){}
 };
+
 struct gate_view:view{
     enum class direction{
         in,
@@ -82,6 +83,12 @@ struct elem_view_meta:elem_view{};
 
 class sim_ui_glue{
 private:
+    using k_tree_ = tree_ns::k_tree<std::shared_ptr<elem_view>>;
+    using k_tree_it = k_tree_::depth_first_node_first_iterator;
+
+    k_tree_ tree;
+    std::shared_ptr<elem_view_meta> global_root, root;
+public:
     sim_ui_glue(){
         this->global_root = std::make_shared<elem_view_meta>();
         this->global_root->id = 0;
@@ -90,15 +97,14 @@ private:
         tree.set_root(root);
     };
 
-    using k_tree_ = tree_ns::k_tree<std::shared_ptr<elem_view>>;
-    using k_tree_it = k_tree_::depth_first_node_first_iterator;
-
-    k_tree_ tree;
-    std::shared_ptr<elem_view_meta> global_root, root;
-public:
-    static sim_ui_glue& get_instance(){
-        static std::unique_ptr<sim_ui_glue> _singleton(new sim_ui_glue());
-        return *_singleton;
+    sim_ui_glue(const k_tree_ &tree){
+        this->tree = tree;
+        auto root_tree_ptr = *std::find_if(tree.begin(), tree.end(),
+            [](const auto &el){
+                return el->id == 0;
+        });
+        this->global_root = std::dynamic_pointer_cast<elem_view_meta>(root_tree_ptr);
+        this->root = global_root;
     }
 
     void set_root(const std::shared_ptr<elem_view> view){
@@ -197,8 +203,8 @@ public:
         std::shared_ptr<gate_view> gt;
         x -= view->x;
         y -= view->y;
-        auto &ins = view->ins;
-        auto &outs = view->outs;
+        auto &gates_in = view->ins;
+        auto &gates_out = view->outs;
         auto predicate = [&x, &y, &view](auto gate){
             return gate->x-gate->w/2 <= x &&
                 gate->y-gate->h/2 <= y &&
@@ -206,13 +212,13 @@ public:
                 gate->y+gate->h/2 > y &&
                 gate->parent_id == view->id;
         };
-        auto it_in = std::find_if(ins.begin(), ins.end(), predicate);
-        if(it_in != ins.end()){
+        auto it_in = std::find_if(gates_in.begin(), gates_in.end(), predicate);
+        if(it_in != gates_in.end()){
             gt = *it_in;
             return gt;
         }
-        auto it_out = std::find_if(outs.begin(), outs.end(), predicate);
-        if(it_out != outs.end()){
+        auto it_out = std::find_if(gates_out.begin(), gates_out.end(), predicate);
+        if(it_out != gates_out.end()){
             gt = *it_out;
             return gt;
         }
@@ -234,13 +240,13 @@ public:
             int x_ =  x - view->x;
             int y_ =  y - view->y;
             auto elem = std::dynamic_pointer_cast<elem_view>(view);
-            auto &ins = elem->ins;
-            auto &outs = elem->outs;
+            auto &gates_in = elem->ins;
+            auto &gates_out = elem->outs;
             auto tmp_predicate = [&x_, &y_, &predicate](auto ptr){
                 return predicate(ptr, x_, y_);
             };
-            std::copy_if(ins.begin(), ins.end(), std::back_inserter(gates), tmp_predicate);
-            std::copy_if(outs.begin(), outs.end(), std::back_inserter(gates), tmp_predicate);
+            std::copy_if(gates_in.begin(), gates_in.end(), std::back_inserter(gates), tmp_predicate);
+            std::copy_if(gates_out.begin(), gates_out.end(), std::back_inserter(gates), tmp_predicate);
         }
         return gates;
     }
@@ -276,10 +282,10 @@ public:
         std::shared_ptr<elem_view_out> out_cast;
         elem_in* elem_in_cast;
         elem_out* elem_out_cast;
-        if(elem_in_cast = dynamic_cast<class elem_in*>(elem.get())){
+        if((elem_in_cast = dynamic_cast<class elem_in*>(elem.get()))){
             in_cast = std::make_shared<elem_view_in>();
             view = in_cast;
-        }else if(elem_out_cast = dynamic_cast<class elem_out*>(elem.get())){
+        }else if((elem_out_cast = dynamic_cast<class elem_out*>(elem.get()))){
             out_cast = std::make_shared<elem_view_out>();
             view = out_cast;
         }else if(dynamic_cast<class elem_and*>(elem.get())){
@@ -299,8 +305,8 @@ public:
         view->st = elem_view::state::normal;
         view->parent_id = this->get_root()->id;
 
-        place_ins(view, elem);
-        place_outs(view, elem);
+        place_gates_in(view, elem);
+        place_gates_out(view, elem);
 
         if(elem_in_cast){
             auto outer = std::make_shared<gate_view_in>();
@@ -314,7 +320,7 @@ public:
         return view;
     }
 
-    void place_ins(std::shared_ptr<elem_view> &view,
+    void place_gates_in(std::shared_ptr<elem_view> &view,
         const std::unique_ptr<element> &elem)
     {
         if(elem->get_ins_size() == 0){
@@ -338,7 +344,7 @@ public:
         }
     }
 
-    void place_outs(std::shared_ptr<elem_view> &view,
+    void place_gates_out(std::shared_ptr<elem_view> &view,
         const std::unique_ptr<element> &elem)
     {
         if(elem->get_outs_size() == 0){

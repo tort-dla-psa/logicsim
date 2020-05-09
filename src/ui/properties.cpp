@@ -65,6 +65,7 @@ properties::properties(QWidget* parent)
         if(cast_out){
             return QString::number(cast_out->ins.at(0)->bit_width);
         }
+        return QString::number(0);
     }); 
     prop->set_setter([prop](auto view){
         auto le = prop->get_line_edit();

@@ -15,6 +15,18 @@ struct node {
     node *parent = nullptr,
         *neighbour_next = nullptr, *neighbour_prev = nullptr,
         *children_beg = nullptr, *children_end = nullptr;
+
+    node()=default;
+
+    node(T &&rhs)
+        requires std::is_move_constructible_v<T>
+        :value(std::move(rhs))
+    {}
+
+    node(const T &rhs)
+        requires std::is_copy_constructible_v<T>
+        :value(rhs)
+    {}
 };
 
 template <class T, class node_allocator = std::allocator<node<T>>>
@@ -124,35 +136,42 @@ public:
     };
 
     class depth_first_node_first_iterator : public iterator_base {
+        bool m_skip_children = false;
     public:
         depth_first_node_first_iterator(node_* n = nullptr)
             :iterator_base(n){}
+
+        void skip_children(bool flag=true){
+            this->m_skip_children = flag;
+        }
 
         auto& operator--(){
             assert(this->n != 0);
             if(this->n->neighbour_prev) {
                 this->n = this->n->neighbour_prev;
-                iterator_base::get_children_end(this->n);
+                if(!this->m_skip_children){
+                    iterator_base::get_children_end(this->n);
+                }
             } else {
                 this->n = this->n->parent;
-                if(!this->n)
-                    return *this;
             }
+            this->m_skip_children = false;
             return *this;
         }
 
         auto& operator++(){
             assert(this->n);
-            if(this->n->children_beg){
+            if(!this->m_skip_children && this->n->children_beg){
                 this->n = this->n->children_beg;
-            }else{
-                while(!this->n->neighbour_next) {
-                    this->n = this->n->parent;
-                    if(!this->n)
-                        return *this;
-                }
-                this->n = this->n->neighbour_next;
+                return *this;
             }
+            this->m_skip_children = false;
+            while(!this->n->neighbour_next) {
+                this->n = this->n->parent;
+                if(!this->n)
+                    return *this;
+            }
+            this->n = this->n->neighbour_next;
             return *this;
         }
 
@@ -162,6 +181,7 @@ public:
         auto& operator-=(size_t num){ return do_decrement_ref(this, num); }
     };
 
+/*
     class depth_firt_children_first_iterator : public iterator_base {
     public:
         depth_firt_children_first_iterator(node_ *n):
@@ -228,6 +248,7 @@ public:
     private:
         std::queue<node_*> travers_q;
     };
+    */
 
     class neighbour_iterator : public iterator_base {
     public:
@@ -263,6 +284,7 @@ public:
         node_* parent_;
     };
 
+/*
     class leaf_iterator : public iterator_base {
     public:
         leaf_iterator(node_ *n = nullptr, node_ *top = nullptr)
@@ -317,19 +339,38 @@ public:
     private:
         node_* top;
     };
+    */
 
     k_tree() {
         p_init();
     }
 
-    k_tree(T&& val){
+    k_tree(const T &val)
+        requires std::is_copy_constructible_v<T>
+    {
+        p_init();
+        set_root(val);
+    }
+
+    k_tree(T&& val)
+        requires std::is_move_constructible_v<T>
+    {
         p_init();
         set_root(std::move(val));
     }
 
-    k_tree(const k_tree<T, node_allocator> &rhs){
+    k_tree(const k_tree<T, node_allocator> &rhs)
+        requires std::is_copy_constructible_v<T>
+    {
         p_init();
         p_copy(rhs);
+    }
+
+    k_tree(k_tree<T, node_allocator>&& rhs)
+        requires std::is_move_constructible_v<T>
+    {
+        p_init();
+        p_move(std::move(rhs));
     }
 
     ~k_tree(){
@@ -337,15 +378,36 @@ public:
         m_alloc_.deallocate(m_root,1);
         m_alloc_.deallocate(m_foot,1);
     }
-    inline auto& operator=(const k_tree<T, node_allocator> &rhs) {
-        if(this != &rhs) {
+
+    inline k_tree<T, node_allocator>& operator=(const k_tree<T, node_allocator> &rhs)
+        requires std::is_copy_constructible_v<T>
+    {
+        if(&rhs != this){
             p_copy(rhs);
         }
-        return (*this);
+        return *this;
+    }
+
+	inline k_tree<T, node_allocator>& operator=(k_tree<T, node_allocator>&& rhs)
+        requires std::is_move_constructible_v<T>
+    {
+        if(&rhs == this){
+            return *this;
+        }
+		clear();
+
+		m_root->neighbour_next = rhs.m_root->neighbour_next;
+		m_root->neighbour_next->neighbour_prev = m_root;
+		m_foot->neighbour_prev = rhs.m_root->neighbour_next;
+		m_foot->neighbour_prev->neighbour_next = m_foot;
+
+		rhs.m_root->neighbour_next = rhs.m_foot;
+		rhs.m_foot->neighbour_prev = rhs.m_root;
+        return *this;
     }
 
     inline auto root() const {
-        return depth_first_node_first_iterator(m_root->neighbour_next);//ISSUE:why?
+        return depth_first_node_first_iterator(m_root->neighbour_next);
     }
     
     inline auto begin() const{
@@ -366,16 +428,17 @@ public:
     inline auto depth_first_node_first_end(const iterator_base &it) const{
         return depth_first_node_first_iterator(it.n->neighbour_next);
     }
-    inline auto depth_first_children_first_begin() const {
+    inline auto depth_children_begren_first_begin() const {
         auto bak = m_root->neighbour_next;
         while(bak->children_beg && bak!= m_foot){
             bak = bak->children_beg;
         }
-        return depth_first_children_first_iterator(bak);
+        return depth_children_begren_first_iterator(bak);
     }
-    inline auto depth_first_children_first_end() const{
-        return depth_first_children_first_iterator(m_foot);
+    inline auto depth_children_begren_first_end() const{
+        return depth_children_begren_first_iterator(m_foot);
     }
+    /*
     inline auto width_first_begin() const{
         return width_first_queue_iterator(m_root->neighbour_next);
     }
@@ -388,6 +451,7 @@ public:
     inline auto width_first_end(const iterator_base &it) const{
         return width_first_queue_iterator();
     }
+    */
     inline auto children_begin(const iterator_base &it) const{
         assert(it.n);
         if(!it.n->children_beg) {
@@ -400,6 +464,7 @@ public:
         result.parent_ = it.n;
         return result;
     }
+    /*
     inline auto leaf_begin(const iterator_base &it) const{
         auto bak = it.n;
         while(bak->children_beg){
@@ -410,6 +475,7 @@ public:
     inline auto leaf_end(const iterator_base &it) const{
         return leaf_iterator(it.n, it.n);
     }
+    */
     inline auto get_parent(const iterator_base &it) const{
         assert(it.n);
         return depth_first_node_first_iterator(it.n->parent);
@@ -484,20 +550,17 @@ public:
         return insert_before(it, std::move(x));
     }
 
-    inline auto child_append(const iterator_base &it, T& x){
-        return child_append(it, std::move(x));
-    }
-    inline auto child_append(const iterator_base &it, T&& x){
-        // If your program fails here you probably used 'append_child' to add the top
+    template<class It, class Arg>
+    inline auto child_append(It it, Arg&& x){
+        // If your program fails here you probably used 'child_append' to add the top
         // node_ to an empty k_tree. From version 1.45 the top element should be added
         // using 'insert_before'. See the documentation for further information, and sorry about
         // the API change.
         assert(it.n != m_root);
         assert(it.n);
 
-        auto tmp = m_alloc_.allocate(1, 0);
-        m_alloc_.construct(tmp);
-        tmp->value = std::move(x);
+        auto tmp = m_alloc_.allocate(1);
+        m_alloc_.construct(tmp, std::forward<Arg>(x));
         tmp->parent = it.n;
 
         auto& nd_tie = (it.n->children_end)? it.n->children_end->neighbour_next:
@@ -509,13 +572,13 @@ public:
         return depth_first_node_first_iterator(tmp);
     }
 
-    inline auto child_prepend(const iterator_base &it, T&& x) {
+    template<class It, class Arg>
+    inline auto child_prepend(It it, Arg&& x) {
         assert(it.n != m_root);
         assert(it.n);
 
-        auto tmp = m_alloc_.allocate(1, 0);
-        m_alloc_.construct(tmp);
-        tmp->value = std::move(x);
+        auto tmp = m_alloc_.allocate(1);
+        m_alloc_.construct(tmp, std::forward<Arg>(x));
         tmp->parent = it.n;
 
         auto& nd_tie = (it.n->children_beg)? it.n->children_beg->neighbour_prev:
@@ -527,17 +590,15 @@ public:
         return depth_first_node_first_iterator(tmp);
     }
 
-    template<class It>
-    inline auto insert_before(It it, T&& x){
+    template<class It, class Arg>
+    inline auto insert_before(It it, Arg&& x){
         if(!it.n) {
             it.n = m_foot;
         }
         assert(it.n != m_root);
 
-        auto tmp = m_alloc_.allocate(1,0);
-        m_alloc_.construct(tmp);
-        tmp->value = std::move(x);
-
+        auto tmp = m_alloc_.allocate(1);
+        m_alloc_.construct(tmp, std::forward<Arg>(x));
         tmp->parent = it.n->parent;
         tmp->neighbour_next = it.n;
         tmp->neighbour_prev = it.n->neighbour_prev;
@@ -551,13 +612,14 @@ public:
         }
         return It(tmp);
     }
-    inline auto insert_after(iterator_base it, T&& x) {
+
+    template<class It, class Arg>
+    inline auto insert_after(It it, Arg&& x) {
         if(!it.n) {
             it.n = m_foot;
         }
-        auto tmp = m_alloc_.allocate(1,0);
-        m_alloc_.construct(tmp);
-        tmp->value = std::move(x);
+        auto tmp = m_alloc_.allocate(1);
+        m_alloc_.construct(tmp, std::forward<Arg>(x));
 
         tmp->parent = it.n->parent;
         tmp->neighbour_prev = it.n;
@@ -570,20 +632,84 @@ public:
         } else {
             tmp->neighbour_next->neighbour_prev = tmp;
         }
-        return depth_first_node_first_begin(tmp);
+        return It(tmp);
     }
 
-    inline auto set_value(iterator_base &it, T&& x){
-        it.n->value = std::move(x);
+    template<class It>
+    inline auto replace(It dst, It src) {
+        assert(dst.n != m_root);
+        auto src_cur = src.n;
+        auto src_start = src.n;
+        auto dst_cur = dst.n;
+
+        // replace the node at dst with m_root of the replacement tree at from
+        erase_children(dst);	
+        auto tmp = m_alloc_.allocate(1);
+        m_alloc_.construct(tmp);
+        std::swap(tmp->value, src.n->value);
+        if(!dst_cur->neighbour_prev) {
+            if(dst_cur->parent){
+                dst_cur->parent->children_beg=tmp;
+            }
+        } else {
+            dst_cur->neighbour_prev->neighbour_next=tmp;
+        }
+        tmp->neighbour_prev=dst_cur->neighbour_prev;
+        if(!dst_cur->neighbour_next) {
+            if(dst_cur->parent){
+                dst_cur->parent->children_end=tmp;
+            }
+        } else {
+            dst_cur->neighbour_next->neighbour_prev=tmp;
+        }
+        tmp->neighbour_next=dst_cur->neighbour_next;
+        tmp->parent=dst_cur->parent;
+        m_alloc_.destroy(dst_cur);
+        m_alloc_.deallocate(dst_cur,1);
+        dst_cur=tmp;
+        
+        // only at this stage can we fix 'last'
+        auto last=src.n->neighbour_next;
+
+        depth_first_node_first_iterator toit=tmp;
+        // copy all children
+        do {
+            assert(src_cur!=0);
+            if(src_cur->children_beg != 0) {
+                src_cur=src_cur->children_beg;
+                toit=child_append(toit, src_cur->value);
+            } else {
+                while(src_cur->neighbour_next==0 && src_cur!=src_start) {
+                    src_cur=src_cur->parent;
+                    toit=get_parent(toit);
+                    assert(src_cur);
+                }
+                src_cur=src_cur->neighbour_next;
+                if(src_cur!=last) {
+                    toit=child_append(get_parent(toit), src_cur->value);
+                }
+            }
+        } while(src_cur!=last);
+
+        return dst_cur;
+    }
+
+    template<class Arg>
+    inline auto set_value(iterator_base &it, Arg&& x){
+        std::swap(it.n->value, x);
         return it;
     }
 
-    inline auto root_prepend(T&& x) {
+    template<class Arg>
+    inline auto root_prepend(Arg&& x) {
         if(m_root->neighbour_next == m_foot) {
-            return this->set_root(std::move(x));
+            return this->set_root(std::forward<Arg>(x));
         }
         auto bak = m_root->neighbour_next;
-        insert_before(depth_first_node_first_iterator(m_foot), x);
+        {
+            auto it = depth_first_node_first_iterator(m_foot);
+            insert_before(it, std::forward<Arg>(x));
+        }
 
         auto new_head_node = m_root->neighbour_next->neighbour_next;
         m_root->neighbour_next = new_head_node;
@@ -698,41 +824,28 @@ public:
         } 
         return -1; //NOTE:should not reach
     }
-
-    inline size_t children(const iterator_base &it)const{
-        auto it_ = it.n->children_beg;
-        if(!it_)
-            return 0;
-
-        size_t ret = 1;
-        while(it_ = it_->neighbour_next)
-            ++ret;
-        return ret;
-    }
     inline bool valid(const iterator_base &it) const{
         return !(it.n==0 || it.n==m_foot || it.n==m_root);
     }
 private:
     inline void p_init(){ 
-        m_root = m_alloc_.allocate(1, 0);
-        m_foot = m_alloc_.allocate(1, 0);
+        m_root = m_alloc_.allocate(1);
+        m_foot = m_alloc_.allocate(1);
         m_root->neighbour_prev = m_root->children_beg = m_root->children_end = m_root->parent = nullptr;
         m_foot->neighbour_next = m_foot->children_beg = m_foot->children_end = m_foot->parent = nullptr;
         m_foot->neighbour_prev = m_root;
         m_root->neighbour_next = m_foot;
     }
 
+    void p_help_construct_children(depth_first_node_first_iterator &dst,
+        const k_tree<T, node_allocator> &rhs)
+    {
+        p_help_construct_children(dst, rhs, rhs.begin());
+    }
     void p_help_construct_children(const depth_first_node_first_iterator &dst,
         const k_tree<T, node_allocator> &rhs,
-        const std::optional<k_tree<T, node_allocator>::depth_first_node_first_iterator> &rhs_src_opt = std::nullopt)
+        k_tree<T, node_allocator>::depth_first_node_first_iterator rhs_src)
     {
-        depth_first_node_first_iterator rhs_src;
-        if(rhs_src_opt.has_value()){
-            rhs_src = *rhs_src_opt;
-        }else{
-            rhs_src = rhs.m_root;
-        }
-
         auto child_it = rhs.children_begin(rhs_src);
         auto end = rhs.children_end(rhs.m_root);
         for(child_it; child_it != end; ++child_it) {
@@ -743,34 +856,43 @@ private:
     }
 
     void p_copy(const k_tree<T, node_allocator> &rhs){
-        if (this == &rhs) {
-            return;
-        }
         clear();
-
         auto rt = rhs.m_root;
         set_root(rt->value);
-        p_help_construct_children(this->m_root, rhs, rhs.m_root);
+
+        auto it = begin();
+        for(auto rhs_it = rhs.begin(); rhs_it != rhs.end(); ++rhs_it, ++it){
+            it.n->parent = rhs_it.n->parent;
+            it.n->neighbour_next = rhs_it.n->neighbour_next;
+            it.n->neighbour_prev = rhs_it.n->neighbour_prev;
+            it.n->children_beg = rhs_it.n->children_beg;
+            it.n->children_end = rhs_it.n->children_end;
+            it.n->value = rhs_it.n->value;
+        }
     }
 
-    /// Comparator class for two nodes of a k_tree (used for sorting and searching).
-    template<class Functor>
-    class nodes_comparator {
-        Functor func;
-    public:
-        nodes_comparator(Functor func):func(func){}
+    void p_move(k_tree<T, node_allocator> &&rhs){
+        clear();
+        auto rt = rhs.m_root;
+        set_root(std::move(rt->value));
 
-        bool operator()(const node_* a, const node_* b) {
-            return func(a->data, b->data);
+        auto it = begin();
+        m_alloc_.deallocate(it.n, 1);
+        for(auto rhs_it = rhs.begin(); rhs_it != rhs.end(); ++rhs_it){
+            it = insert_after(it, std::move(rhs_it.n->value));
+            auto ch_it = rhs_it.begin_children_iterator();
+            auto ch_end = rhs_it.end_children_iterator();
+            for(; ch_it != ch_end; ++ch_it){
+                child_append(it, std::move(ch_it.n->value));
+            }
         }
-    };
-
+    }
 };
 
 //NOTE: distance can be computed only in depth 
 template<class T>
 inline auto distance(const typename k_tree<T>::iterator_base &it1, const typename k_tree<T>::iterator_base &it2){
-    auto it = it.n;
+    auto it = it1.n;
 	assert(it);
 	size_t result = 0;
 	while(it->parent && it != it2.n) {

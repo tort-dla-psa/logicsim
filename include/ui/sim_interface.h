@@ -21,7 +21,7 @@ class sim_interface : public draw_widget {
     }cam;
 
     std::optional<QPoint> mouse_pos_prev, mouse_pos_prev_move, mouse_pos;
-    sim_ui_glue& glue;
+    sim_ui_glue glue;
 
     std::shared_ptr<elem_view> view;
     std::vector<std::shared_ptr<elem_view>> selected_views;
@@ -75,7 +75,7 @@ class sim_interface : public draw_widget {
         auto root_it = sim.get_by_id(root_id);
         auto &ref = *sim.emplace(root_it, std::move(elem));
         this->view = elem_to_view(ref);
-        this->view->st == elem_view::state::creating;
+        this->view->st = elem_view::state::creating;
     }
 
     void set_in_value(std::shared_ptr<elem_view_in> view);
@@ -91,9 +91,9 @@ public:
     void mouseMoveEvent(QMouseEvent *e)override;
     void mousePressEvent(QMouseEvent *e)override;
     void mouseReleaseEvent(QMouseEvent *e)override;
-    void keyPressEvent(QKeyEvent* e);
-    void keyReleaseEvent(QKeyEvent* e);
-    void paintEvent(QPaintEvent *e);
+    void keyPressEvent(QKeyEvent* e)override;
+    void keyReleaseEvent(QKeyEvent* e)override;
+    void paintEvent(QPaintEvent *e)override;
 public slots:
     void add_elem_and();
     void add_elem_or();

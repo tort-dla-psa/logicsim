@@ -48,10 +48,10 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::unique_ptr<ele
     std::shared_ptr<elem_view_out> out_cast;
     elem_in* elem_in_cast;
     elem_out* elem_out_cast;
-    if(elem_in_cast = dynamic_cast<class elem_in*>(elem.get())){
+    if((elem_in_cast = dynamic_cast<class elem_in*>(elem.get()))){
         in_cast = std::make_shared<elem_view_in>();
         view = in_cast;
-    }else if(elem_out_cast = dynamic_cast<class elem_out*>(elem.get())){
+    }else if((elem_out_cast = dynamic_cast<class elem_out*>(elem.get()))){
         out_cast = std::make_shared<elem_view_out>();
         view = out_cast;
     }else if(dynamic_cast<class elem_and*>(elem.get())){
@@ -294,8 +294,7 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
 }
 
 sim_interface::sim_interface(QWidget* parent)
-    :draw_widget(parent),
-    glue(sim_ui_glue::get_instance())
+    :draw_widget(parent)
 {
     this->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &QWidget::customContextMenuRequested,
@@ -341,7 +340,7 @@ void sim_interface::delete_items_cm(){
 }
 void sim_interface::cut_items_cm(){
     for(auto el:selected_views){
-        el->st == elem_view::state::cut;
+        el->st = elem_view::state::cut;
     }
     update();
 }
@@ -729,13 +728,24 @@ void sim_interface::add_elem_meta(){
 void sim_interface::save_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
     elem_file_saver saver;
-    auto json = saver.sim_to_json(sim.begin(), sim.end());
-    saver.save_json(json, std_path);
+    auto json_sim = saver.sim_to_json(sim.begin(), sim.end());
+    auto json_glue = saver.glue_to_json(glue.begin(), glue.end());
+    nlohmann::json j;
+    j["sim"] = json_sim;
+    j["glue"] = json_glue;
+    saver.save_json(j, std_path);
 }
 void sim_interface::load_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
     elem_file_saver loader;
-    auto json = loader.load_json(std_path);
-    class sim tmp(loader.sim_from_json(json)); // to avoid name collision
+    auto j = loader.load_json(std_path);
+    auto json_sim = j["sim"];
+    auto json_glue = j["glue"];
+    class sim tmp(loader.sim_from_json(json_sim));
     this->sim = std::move(tmp);
+    auto glue(loader.glue_from_json(json_glue));
+    this->glue = glue;
+    this->view = nullptr;
+    this->gate_view_1 = gate_view_2 = nullptr;
+    this->mode = mode::still;
 }

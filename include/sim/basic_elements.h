@@ -130,7 +130,6 @@ public:
     const size_t& get_width()const override             { return gt->get_width(); }
     bool get_value(const size_t &place)const override   { return gt->get_value(place); }
     const std::vector<bool>& get_values()const override { return gt->get_values(); }
-    std::vector<bool> get_values()override              { return gt->get_values(); }
 
     std::shared_ptr<const gate> find_gate(const size_t &id)const override{
         if(gt->get_id() == id){
