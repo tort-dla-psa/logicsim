@@ -13,10 +13,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install deps
-      run: sudo apt install qt5-default
+      run: sudo apt install qt5-default g++-8 gcc-8
+    - name: submodules
+      working-directory: /home/runner/work/logicsim/logicsim/
+      run: git submodule init && git submodule update --recursive
     - name: cmake
       working-directory: /home/runner/work/logicsim/logicsim/
-      run: sudo cmake .
+      run: sudo cmake . -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8
     - name: make
       working-directory: /home/runner/work/logicsim/logicsim/
       run: sudo make -j4
