@@ -6,12 +6,12 @@
 #include "element.h"
 #include "basic_elements.h"
 #include "file_ops.h"
-#include "k_tree.h"
+#include "k_tree.hpp"
 
 class sim{
 public:
-    using k_tree_ = tree_ns::k_tree<std::unique_ptr<element>>;
-    using k_tree_it = k_tree_::depth_first_node_first_iterator;
+    using k_tree_ = k_tree::tree<std::unique_ptr<element>>;
+    using k_tree_it = k_tree_::depth_first_iterator;
 
 private:
     k_tree_ elems;
@@ -20,7 +20,7 @@ public:
         elems.set_root(std::move(root));
     }
 
-    sim(k_tree_&& tree){
+    sim(k_tree_ &&tree){
         elems = std::move(tree);
     }
 
@@ -28,16 +28,22 @@ public:
         sim(std::make_unique<elem_meta>("root"))
     {}
 
-    inline auto root(){
-        return elems.root();
+    sim(const sim &rhs)=delete;
+    inline auto operator=(const sim &rhs)=delete;
+
+    sim(sim &&rhs)=default;
+    inline sim& operator=(sim &&rhs)=default;
+
+    inline auto& root(){
+        return *elems.begin();
     }
 
     inline auto begin(){
-        return elems.depth_first_node_first_begin();
+        return elems.begin();
     }
 
     inline auto end(){
-        return elems.depth_first_node_first_end();
+        return elems.end();
     }
 
     inline void tick(){
@@ -76,12 +82,13 @@ public:
     }
 
     inline k_tree_it emplace(k_tree_::value_type&& val){
-        auto it = elems.root();
+        auto it = elems.begin();
         return emplace(it, std::move(val));
     }
 
     inline k_tree_it emplace(const k_tree_it& it, k_tree_::value_type&& val){
         auto &el = (*it);
+        val->parent_id = el->get_id();
         if(dynamic_cast<elem_meta*>(el.get())){
             auto el_in = dynamic_cast<elem_in*>(val.get());
             auto el_out = dynamic_cast<elem_out*>(val.get());
@@ -89,12 +96,12 @@ public:
                 auto outer = el_in->gt_outer;
                 el->emplace_back(outer);
                 //insert gate in left-most position to tick as early as possible
-                return elems.child_prepend(it, std::move(val));
+                return elems.prepend_child(it, std::move(val));
             }else if(el_out){
                 auto outer = el_out->gt_outer;
                 el->emplace_back(outer);
             }
         }
-        return elems.child_append(it, std::move(val));
+        return elems.append_child(it, std::move(val));
     }
 };

@@ -8,7 +8,7 @@
 #include "draw_widget.h"
 #include "sim/sim.h"
 #include "sim/element.h"
-#include "sim/k_tree.h"
+#include "k_tree.hpp"
 #include "sim_ui_glue.h"
 
 class prop_pair;
@@ -21,7 +21,7 @@ class sim_interface : public draw_widget {
     }cam;
 
     std::optional<QPoint> mouse_pos_prev, mouse_pos_prev_move, mouse_pos;
-    sim_ui_glue& glue;
+    sim_ui_glue glue;
 
     std::shared_ptr<elem_view> view;
     std::vector<std::shared_ptr<elem_view>> selected_views;
@@ -50,8 +50,8 @@ class sim_interface : public draw_widget {
 
     std::shared_ptr<elem_view> elem_to_view(const std::unique_ptr<element> &elem);
     std::shared_ptr<elem_view> elem_to_view(size_t id);
-    void place_gates_in(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
-    void place_gates_out(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
+    void place_ins(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
+    void place_outs(std::shared_ptr<elem_view> &view, const std::unique_ptr<element> &elem);
 
     void draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_view> &view);
     void rotate_view(std::shared_ptr<elem_view> &view);
@@ -72,9 +72,10 @@ class sim_interface : public draw_widget {
         this->mode = mode::create;
         auto elem = std::make_unique<Elem>(name);
         auto root_id = this->glue.get_root()->id;
-        auto &ref = *sim.emplace(std::move(elem));
+        auto root_it = sim.get_by_id(root_id);
+        auto &ref = *sim.emplace(root_it, std::move(elem));
         this->view = elem_to_view(ref);
-        this->view->st == elem_view::state::creating;
+        this->view->st = elem_view::state::creating;
     }
 
     void set_in_value(std::shared_ptr<elem_view_in> view);
@@ -90,9 +91,9 @@ public:
     void mouseMoveEvent(QMouseEvent *e)override;
     void mousePressEvent(QMouseEvent *e)override;
     void mouseReleaseEvent(QMouseEvent *e)override;
-    void keyPressEvent(QKeyEvent* e);
-    void keyReleaseEvent(QKeyEvent* e);
-    void paintEvent(QPaintEvent *e);
+    void keyPressEvent(QKeyEvent* e)override;
+    void keyReleaseEvent(QKeyEvent* e)override;
+    void paintEvent(QPaintEvent *e)override;
 public slots:
     void add_elem_and();
     void add_elem_or();

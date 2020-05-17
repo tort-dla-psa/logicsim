@@ -17,8 +17,8 @@ protected:
         lg.log(this->get_name()+"("+std::to_string(get_id())+")", msg);
     }
 public:
-    gate(const std::string &name, const size_t &width=1, const size_t &id=1)
-        :nameable(name, id),
+    gate(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
+        :nameable(name, parent_id),
         lg(logger::get_instance())
     {
         set_width(width);
@@ -38,9 +38,6 @@ public:
     virtual const std::vector<bool>& get_values()const{
         return values;
     }
-    virtual std::vector<bool> get_values(){
-        return values;
-    }
 
     virtual void set_values(const std::vector<bool> &values){
         if(values.size() != this->width){
@@ -48,7 +45,6 @@ public:
                 " to a gate "+get_name()+" with width "+std::to_string(width);
             throw std::runtime_error(mes);
         }
-        log("got value "+sim_helpers::to_str(values));
         this->values = values;
     }
 

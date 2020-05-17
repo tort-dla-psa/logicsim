@@ -9,12 +9,10 @@ class element:virtual public nameable{
 public:
     using ins_vec = std::vector<std::shared_ptr<gate_in>>;
     using outs_vec = std::vector<std::shared_ptr<gate_out>>;
-    using gates_vec = std::vector<std::shared_ptr<gate>>;
 protected:
     friend class elem_file_saver;
     std::vector<std::shared_ptr<gate_in>> ins;
     std::vector<std::shared_ptr<gate_out>> outs;
-    std::vector<std::shared_ptr<gate>> gates;
 
     bool processed;
 public:
@@ -44,33 +42,26 @@ public:
     auto get_ins_cend()const    { return ins.cend(); }
     auto get_ins_rend()         { return ins.rend(); }
     auto get_ins_rend()const    { return ins.crend(); }
-    auto get_gates_begin()      { return gates.begin(); }
-    auto get_gates_begin()const { return gates.cbegin(); }
-    auto get_gates_rbegin()     { return gates.rbegin(); }
-    auto get_gates_rbegin()const{ return gates.crbegin(); }
-    auto get_gates_end()        { return gates.end(); }
-    auto get_gates_cend()const  { return gates.cend(); }
-    auto get_gates_rend()       { return gates.rend(); }
-    auto get_gates_rend()const  { return gates.crend(); }
-    virtual gates_vec& get_gates()              { return gates; }
-    virtual const gates_vec& get_gates()const   { return gates; }
     virtual ins_vec& get_ins()                  { return ins; }
     virtual const ins_vec& get_ins()const       { return ins; }
     virtual outs_vec& get_outs()                { return outs; }
     virtual const outs_vec& get_outs()const     { return outs; }
     virtual size_t get_ins_size()const          { return ins.size(); }
     virtual size_t get_outs_size()const         { return outs.size(); }
-    virtual size_t get_gates_size()const        { return gates.size(); }
 
     virtual std::shared_ptr<const gate> find_gate(const size_t &id)const{
-        auto c_it = std::find_if(gates.begin(), gates.end(),
-            [&id](auto gate){
-                return gate->get_id() == id;
-            });
-        if(c_it == gates.end()){
-            return nullptr;
+        auto predicate = [&id](auto gate){
+            return gate->get_id() == id;
+        };
+        auto c_in_it = std::find_if(ins.cbegin(), ins.cend(), predicate);
+        if(c_in_it != ins.cend()){
+            return *c_in_it;
         }
-        return *c_it;
+        auto c_out_it = std::find_if(outs.cbegin(), outs.cend(), predicate);
+        if(c_out_it != outs.cend()){
+            return *c_out_it;
+        }
+        return nullptr;
     }
     virtual std::shared_ptr<gate> find_gate(const size_t &id){
         auto c_this = const_cast<const element*>(this);
@@ -99,19 +90,15 @@ public:
     }
     void emplace_back(const std::shared_ptr<gate_in> in){
         ins.emplace_back(in);
-        gates.emplace_back(in);
     }
     void emplace_back(const std::shared_ptr<gate_out> out){
         outs.emplace_back(out);
-        gates.emplace_back(out);
     }
     void insert(const ins_vec::const_iterator it, const std::shared_ptr<gate_in> &in){
         ins.emplace(it, in);
-        gates.emplace_back(in);
     }
     void insert(const outs_vec::const_iterator it, const std::shared_ptr<gate_out> &out){
         outs.emplace(it, out);
-        gates.emplace_back(out);
     }
     void insert(const std::shared_ptr<gate_in> in, size_t place){
         if(place > ins.size()){
@@ -132,16 +119,10 @@ public:
         insert(outs.begin()+place, out);
     }
     void erase(ins_vec::const_iterator it){
-        auto el = *it;
-        auto gates_it = std::find(gates.begin(), gates.end(), el);
         ins.erase(it);
-        gates.erase(gates_it);
     }
     void erase(outs_vec::const_iterator it){
-        auto el = *it;
-        auto gates_it = std::find(gates.begin(), gates.end(), el);
         outs.erase(it);
-        gates.erase(gates_it);
     }
 
     friend bool operator==(const element &lhs, const element &rhs){
@@ -155,12 +136,8 @@ public:
             [](auto ptr1, auto ptr2){
                 return (ptr1 && ptr2) && (*ptr1 == *ptr2);
             });
-        bool gates_eq = std::equal(lhs.gates.begin(), lhs.gates.end(), rhs.gates.begin(),
-            [](auto ptr1, auto ptr2){
-                return (ptr1 && ptr2) && (*ptr1 == *ptr2);
-            });
         return lhs_n == rhs_n &&
-            ins_eq && outs_eq && gates_eq;
+            ins_eq && outs_eq;
     }
     friend bool operator!=(const element &lhs, const element &rhs){
         return !(lhs == rhs);
