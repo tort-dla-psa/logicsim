@@ -82,6 +82,32 @@ properties::properties(QWidget* parent)
     }); 
     prop->hide();
 
+    prop = props.emplace_back(new prop_pair("value", "Value", this));
+    prop->set_getter([](auto view){
+        auto cast_gate = std::dynamic_pointer_cast<gate_view>(view);
+        if(cast_gate){
+            return QString::number(cast_gate->value);
+        }
+        auto cast_view_in = std::dynamic_pointer_cast<elem_view_in>(view);
+        if(cast_view_in){
+            return QString::number(cast_view_in->outs.at(0)->value);
+        }
+        auto cast_view_out = std::dynamic_pointer_cast<elem_view_out>(view);
+        if(cast_view_out){
+            return QString::number(cast_view_out->ins.at(0)->value);
+        }
+        return QString::number(0);
+    }); 
+    prop->set_setter([prop](auto view){
+        auto le = prop->get_line_edit();
+        auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
+        if(cast_in){
+            cast_in->outs.at(0)->bit_width = le->text().toLong();
+            return;
+        }
+    }); 
+    prop->hide();
+
     for(auto prop:props){
         this->scroll_layout->addWidget(prop);
         connect(prop, &prop_pair::text_changed, 
@@ -97,7 +123,7 @@ properties::~properties(){
     props.clear();
 }
 
-void properties::update_props(const std::shared_ptr<elem_view> &view){
+void properties::update_props(const std::shared_ptr<view> &view){
     for(auto prop:props){
         auto name = prop->name(); 
         if(name == "name" ||
@@ -109,10 +135,19 @@ void properties::update_props(const std::shared_ptr<elem_view> &view){
             prop->show();
         }else if(name == "bit_w"){
             if(std::dynamic_pointer_cast<elem_view_gate>(view)){
-                prop->QWidget::setHidden(false);
+                prop->show();
             }else{
-                prop->QWidget::setHidden(true);
+                prop->hide();
             }
+        }else if(name == "value"){
+            if(std::dynamic_pointer_cast<gate_view>(view) ||
+                std::dynamic_pointer_cast<elem_view_gate>(view)){
+                prop->show();
+            }else{
+                prop->hide();
+            }
+        }else{
+            prop->hide();
         }
     }
 }
@@ -122,7 +157,7 @@ void properties::reset(){
         prop->reset();
     }
 }
-void properties::slot_element_selected(std::shared_ptr<elem_view> view){
+void properties::slot_element_selected(std::shared_ptr<view> view){
     if(!view){
         reset();
         return;

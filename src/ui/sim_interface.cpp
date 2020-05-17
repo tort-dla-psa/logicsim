@@ -478,7 +478,7 @@ void sim_interface::dive_into_meta(std::shared_ptr<elem_view_meta> value){
     update();
 }
 void sim_interface::set_in_value(std::shared_ptr<elem_view_in> view){
-    int input = QInputDialog::getInt(this, "input devimal value", "input decimal value to pass");
+    int input = QInputDialog::getInt(this, "input decimal value", "input decimal value to pass");
     auto bits = bits::to_bits(input);
     class elem_in* elem_in;
     try{

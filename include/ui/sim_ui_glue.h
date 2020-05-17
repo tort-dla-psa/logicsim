@@ -34,6 +34,7 @@ struct gate_view:view{
         out
     }dir;
     size_t bit_width;
+    int value;
 
     gate_view(){
         this->w = 10;

@@ -11,7 +11,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class properties; }
 QT_END_NAMESPACE
 
-class elem_view;
+class view;
 class prop_pair;
 
 class properties : public QWidget {
@@ -22,14 +22,14 @@ class properties : public QWidget {
 	std::vector<prop_pair*> props;
 
 	void update_props();
-	void update_props(const std::shared_ptr<elem_view> &view);
+	void update_props(const std::shared_ptr<view> &view);
 public:
 	properties(QWidget *parent = nullptr);
 	virtual ~properties();
 signals:
 	void property_changed(const prop_pair* prop);
 public slots:
-	void slot_element_selected(std::shared_ptr<elem_view> view);
+	void slot_element_selected(std::shared_ptr<view> view);
 	void reset();
 private slots:
 	void slot_prop_changed();
