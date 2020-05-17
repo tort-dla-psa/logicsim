@@ -218,8 +218,8 @@ public:
         nameable(name, parent_id),
         Gt(gate_name, width)
     {
-        gt = std::make_shared<Gt>(this->Gt::get_name(), width);
-        gt_outer = std::make_shared<Gt_outer>(this->Gt_outer::get_name(), width);
+        gt = std::make_shared<Gt>(gate_name, width);
+        gt_outer = std::make_shared<Gt_outer>(name, width);
     }
 
     void set_width(const size_t &width)override         { gt->set_width(width); }
