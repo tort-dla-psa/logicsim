@@ -1,3 +1,6 @@
 [submodule "submodules/nlohmann-json"]
 	path = submodules/nlohmann-json
 	url = https://github.com/nlohmann/json
+[submodule "submodules/k-tree"]
+	path = submodules/k-tree
+	url = https://github.com/tort-dla-psa/k_tree.git

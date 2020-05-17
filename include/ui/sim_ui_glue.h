@@ -2,7 +2,7 @@
 #include <vector>
 #include <utility>
 #include "nlohmann/json.hpp"
-#include "sim/k_tree.h"
+#include "k_tree.hpp"
 #include "sim/basic_elements.h"
 #include "sim/meta_element.h"
 
@@ -83,8 +83,8 @@ struct elem_view_meta:elem_view{};
 
 class sim_ui_glue{
 private:
-    using k_tree_ = tree_ns::k_tree<std::shared_ptr<elem_view>>;
-    using k_tree_it = k_tree_::depth_first_node_first_iterator;
+    using k_tree_ = k_tree::tree<std::shared_ptr<elem_view>>;
+    using k_tree_it = k_tree_::depth_first_iterator;
 
     k_tree_ tree;
     std::shared_ptr<elem_view_meta> global_root, root;
@@ -185,7 +185,7 @@ public:
             throw std::runtime_error("attempt to add sub-element to an element that is not meta");
         }
         view->parent_id = meta_cast->id;
-        return tree.child_append(it, view);
+        return tree.append_child(it, view);
     }
 
     void del_view(const size_t &id){

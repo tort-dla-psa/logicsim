@@ -7,15 +7,15 @@
 #include "meta_element.h"
 #include "basic_elements.h"
 #include "helpers.h"
-#include "k_tree.h"
+#include "k_tree.hpp"
 #include "sim_ui_glue.h"
 #include "nlohmann/json.hpp"
 
 class elem_file_saver{
-    using k_tree_sim = tree_ns::k_tree<std::unique_ptr<element>>;
-    using k_tree_glue = tree_ns::k_tree<std::shared_ptr<elem_view>>;
-    using k_tree_sim_it = k_tree_sim::depth_first_node_first_iterator;
-    using k_tree_glue_it = k_tree_glue::depth_first_node_first_iterator;
+    using k_tree_sim = k_tree::tree<std::unique_ptr<element>>;
+    using k_tree_glue = k_tree::tree<std::shared_ptr<elem_view>>;
+    using k_tree_sim_it = k_tree_sim::depth_first_iterator;
+    using k_tree_glue_it = k_tree_glue::depth_first_iterator;
 
     enum class types_gate{
         t_gt_in,
@@ -188,7 +188,7 @@ class elem_file_saver{
         auto root = std::move(elems.at(index));
         elems.erase(root_it);
 
-        tree_ns::k_tree<T> tree(std::move(root));
+        k_tree::tree<T> tree(std::move(root));
         for(auto &el:elems){
             const auto &parent_id = el->parent_id;
             auto it = std::find_if(tree.begin(), tree.end(),
@@ -196,7 +196,7 @@ class elem_file_saver{
                     return el->id == parent_id;
             });
             if(it != tree.end()){
-                tree.child_append(it, std::move(el));
+                tree.append_child(it, std::move(el));
             }
         }
         return tree;
@@ -243,6 +243,17 @@ auto sim_to_json(k_tree_sim_it beg, k_tree_sim_it end){
         }
         result["ins"] = std::move(ins);
         result["outs"] = std::move(outs);
+        {
+            auto elem_in_cast = dynamic_cast<elem_in*>(elem);
+            if(elem_in_cast){
+                result["gate_outer"] = gate_to_json(elem_in_cast->gt_outer.get());
+            }
+        } {
+            auto elem_out_cast = dynamic_cast<elem_out*>(elem);
+            if(elem_out_cast){
+                result["gate_outer"] = gate_to_json(elem_out_cast->gt_outer.get());
+            }
+        }
         return result;
     };
 
@@ -283,12 +294,33 @@ auto sim_from_json(const nlohmann::json &j){
         ins.clear();
         outs.clear();
         for(auto &j_obj:j.at("ins")){
-            auto gt = gate_from_json(j_obj);
-            ins.emplace_back(std::dynamic_pointer_cast<gate_in>(gt));
+            auto gt_ptr = gate_from_json(j_obj);
+            auto cast = std::dynamic_pointer_cast<gate_in>(gt_ptr);
+            ins.emplace_back(cast);
         }
         for(auto &j_obj:j.at("outs")){
-            auto gt = gate_from_json(j_obj);
-            outs.emplace_back(std::dynamic_pointer_cast<gate_out>(gt));
+            auto gt_ptr = gate_from_json(j_obj);
+            auto cast = std::dynamic_pointer_cast<gate_out>(gt_ptr);
+            outs.emplace_back(cast);
+        }
+        {
+            auto elem_in_cast = dynamic_cast<elem_in*>(el.get());
+            if(elem_in_cast){
+                auto gt_ptr = gate_from_json(j.at("gate_outer"));
+                elem_in_cast->gt_outer = std::dynamic_pointer_cast<gate_in>(gt_ptr);
+                elem_in_cast->gt = outs.at(0);
+                elem_in_cast->gt->parent_id = j.at("id");
+                elem_in_cast->gt_outer->parent_id = j.at("id");
+            }
+        } {
+            auto elem_out_cast = dynamic_cast<elem_out*>(el.get());
+            if(elem_out_cast){
+                auto gt_ptr = gate_from_json(j.at("gate_outer"));
+                elem_out_cast->gt_outer = std::dynamic_pointer_cast<gate_out>(gt_ptr);
+                elem_out_cast->gt = ins.at(0);
+                elem_out_cast->gt->parent_id = j.at("id");
+                elem_out_cast->gt_outer->parent_id = j.at("id");
+            }
         }
         return el;
     };
@@ -346,6 +378,17 @@ auto glue_to_json(k_tree_glue_it beg, k_tree_glue_it end){
         }
         result["ins"] = std::move(ins);
         result["outs"] = std::move(outs);
+        {
+            auto elem_in_view = dynamic_cast<const elem_view_in*>(elem);
+            if(elem_in_view){
+                result["gate_outer"] = gate_to_json(elem_in_view->gt_outer.get());
+            }
+        } {
+            auto elem_out_view = dynamic_cast<const elem_view_out*>(elem);
+            if(elem_out_view){
+                result["gate_outer"] = gate_to_json(elem_out_view->gt_outer.get());
+            }
+        }
         return result;
     };
 
@@ -359,11 +402,19 @@ auto glue_to_json(k_tree_glue_it beg, k_tree_glue_it end){
 }
 
 auto glue_from_json(const nlohmann::json &j){
-    auto gate_from_json = [this](const nlohmann::json& j) {
+    auto view_from_json = [](std::shared_ptr<view> v, const nlohmann::json &j){
+        v->x = j.at("x");
+        v->y = j.at("y");
+        v->w = j.at("w");
+        v->h = j.at("h");
+        v->name = j.at("name");
+        v->id = j.at("id");
+        v->parent_id = j.at("parent_id");
+    };
+    auto gate_from_json = [this, &view_from_json](const nlohmann::json& j) {
         auto type = j.at("type");
         auto gt = p_type_to_gate_view(type, j.at("name"));
-        gt->id = j.at("id");
-        gt->parent_id = j.at("parent_id");
+        view_from_json(gt, j);
         gt->bit_width = j.at("width");
         if(type == types_gate::t_gt_out){
             auto gt_out = std::dynamic_pointer_cast<gate_view_out>(gt);
@@ -379,10 +430,9 @@ auto glue_from_json(const nlohmann::json &j){
         return gt;
     };
 
-    auto elem_from_json = [this, &gate_from_json](const nlohmann::json& j) {
+    auto elem_from_json = [this, &gate_from_json, &view_from_json](const nlohmann::json& j) {
         auto el = p_type_to_elem_view(j.at("type"), j.at("name"));
-        el->id = j.at("id");
-        el->parent_id = j.at("parent_id");
+        view_from_json(el, j);
         auto &ins = el->ins;
         auto &outs = el->outs;
         ins.clear();
@@ -394,6 +444,19 @@ auto glue_from_json(const nlohmann::json &j){
         for(auto &j_obj:j.at("outs")){
             auto gt = gate_from_json(j_obj);
             outs.emplace_back(std::dynamic_pointer_cast<gate_view_out>(gt));
+        }
+        {
+            auto elem_view_in_cast = std::dynamic_pointer_cast<elem_view_in>(el);
+            if(elem_view_in_cast){
+                auto gt_ptr = gate_from_json(j.at("gate_outer"));
+                elem_view_in_cast->gt_outer = std::dynamic_pointer_cast<gate_view_in>(gt_ptr);
+            }
+        } {
+            auto elem_view_out_cast = std::dynamic_pointer_cast<elem_view_out>(el);
+            if(elem_view_out_cast){
+                auto gt_ptr = gate_from_json(j.at("gate_outer"));
+                elem_view_out_cast->gt_outer = std::dynamic_pointer_cast<gate_view_out>(gt_ptr);
+            }
         }
         return el;
     };

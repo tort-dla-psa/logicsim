@@ -45,7 +45,6 @@ public:
                 " to a gate "+get_name()+" with width "+std::to_string(width);
             throw std::runtime_error(mes);
         }
-        log("got value "+sim_helpers::to_str(values));
         this->values = values;
     }
 

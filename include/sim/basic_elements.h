@@ -89,7 +89,7 @@ public:
 };
 
 template<class Gt, class Gt_outer>
-class elem_gate:public elem_basic, public Gt, public Gt_outer{
+class elem_gate:public elem_basic, public Gt{
     using element::get_outs_begin;
     using element::get_outs_rbegin;
     using element::get_outs_end;
@@ -100,12 +100,6 @@ class elem_gate:public elem_basic, public Gt, public Gt_outer{
     using element::get_ins_end;
     using element::get_ins_cend;
     using element::get_ins_rend;
-    using element::get_gates_begin;
-    using element::get_gates_rbegin;
-    using element::get_gates_end;
-    using element::get_gates_cend;
-    using element::get_gates_rend;
-    using element::get_gates;
     using element::get_ins;
     using element::get_outs;
 
@@ -115,12 +109,10 @@ protected:
     std::shared_ptr<Gt> gt;
     std::shared_ptr<Gt_outer> gt_outer;
 public:
-    using elem_basic::get_id;
     elem_gate(const std::string &name, const std::string &gate_name, const size_t &width=1, const size_t &parent_id=0)
         :elem_basic(name, parent_id),
         nameable(name, parent_id),
-        Gt(gate_name, width),
-        Gt_outer(name+"_outer", width)
+        Gt(gate_name, width)
     {
         gt = std::make_shared<Gt>(this->Gt::get_name(), width);
         gt_outer = std::make_shared<Gt_outer>(this->Gt_outer::get_name(), width);
@@ -133,7 +125,8 @@ public:
 
     std::shared_ptr<const gate> find_gate(const size_t &id)const override{
         if(gt->get_id() == id){
-            return std::const_pointer_cast<const gate>(std::dynamic_pointer_cast<gate>(gt));
+            auto gt_ptr = std::dynamic_pointer_cast<gate>(gt);
+            return std::const_pointer_cast<const gate>(gt_ptr);
         }
         return nullptr;
     }
@@ -191,12 +184,11 @@ class elem_in final :public elem_gate<gate_out, gate_in>{
     using element::get_in;
     friend class sim;
 public:
+    using elem_gate::get_id;
     elem_in(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
         :elem_gate(name, name+"_in", width, parent_id),
         nameable(name, parent_id)
     {
-        //auto cast = std::dynamic_pointer_cast<gate_in_active<elem_in>>(gt_outer);
-        //cast->set_active(true);
         elem_gate::gt_outer->parent_id = this->get_id();
         elem_gate::gt->parent_id = this->get_id();
         this->element::outs.emplace_back(elem_gate::gt);

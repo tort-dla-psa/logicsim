@@ -14,7 +14,7 @@ Constructs this thing for tests:
 */
 inline auto construct_test_sim(){
     class sim sim;
-    auto root_it = sim.root();
+    auto root_it = sim.begin();
     auto meta_elem = std::make_unique<elem_meta>("meta1");
     auto in_elem = std::make_unique<elem_in>("in");
     auto out_elem = std::make_unique<elem_out>("out");

@@ -8,7 +8,7 @@
 #include "draw_widget.h"
 #include "sim/sim.h"
 #include "sim/element.h"
-#include "sim/k_tree.h"
+#include "k_tree.hpp"
 #include "sim_ui_glue.h"
 
 class prop_pair;

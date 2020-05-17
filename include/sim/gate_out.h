@@ -22,8 +22,6 @@ public:
     void pass_value()const{
         auto &val = this->get_values();
         for(auto &in:ins){
-            log("passing value "+sim_helpers::to_str(val)+
-                " to gate id:"+std::to_string(in->get_id()));
             in->set_values(val);
         }
     }

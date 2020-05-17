@@ -253,15 +253,21 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
             auto &gt_v = *gt_v_it;
             auto gt_tmp = gt_parent->find_gate(gt_v->id);
             if(gt_tmp){
-                gt = std::move(gt_tmp);
+                gt = gt_tmp;
+                break;
             }
         }
         for(auto gt_v_it = view->outs.begin(); !gt && gt_v_it != view->outs.end(); gt_v_it++){
             auto &gt_v = *gt_v_it;
             auto gt_tmp = gt_parent->find_gate(gt_v->id);
             if(gt_tmp){
-                gt = std::move(gt_tmp);
+                gt = gt_tmp;
+                break;
             }
+        }
+        if(!gt){
+            auto mes = "gate id:"+std::to_string(view->id)+" does not contain in/out gate";
+            throw std::runtime_error(mes);
         }
         auto bit_val = gt->get_values();
         QString txt;
@@ -687,21 +693,6 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
             auto view_parent_it = sim.get_by_id(view->parent_id);
             auto gt = (*view_parent_it)->find_gate(view->id);
             gt->set_width(gate_cast->bit_width);
-            /*
-            auto func = [this, &gate_cast](std::shared_ptr<gate_view> gt){
-                gt->bit_width = gate_cast->bit_width;
-                auto gt2 = cn->gate_in == gt?
-                    std::static_pointer_cast<gate_view>(cn->gate_out):
-                    std::static_pointer_cast<gate_view>(cn->gate_in);
-                connect_gates(gt, gt2); //ISSUE: is it obsolete?
-            };
-            for(auto &gt_out:view->outs){
-                func(gt_out);
-            }
-            for(auto &gt_in:view->ins){
-                func(gt_in);
-            }
-            */
         }
         update();
     }
