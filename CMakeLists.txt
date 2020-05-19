@@ -29,3 +29,7 @@ add_test(test_save_load test_save_load)
 add_executable(test_save_load_gui tests/save_load_gui/main.cpp)
 target_link_libraries(test_save_load_gui stdc++fs)
 add_test(test_save_load_gui test_save_load_gui)
+
+add_executable(test_full_adder tests/full_adder/main.cpp)
+target_link_libraries(test_full_adder stdc++fs)
+add_test(test_full_adder test_full_adder)
