@@ -24,7 +24,7 @@ class nameable{
         }
     };
 public:
-    nameable(const std::string &name, const size_t &parent_id) {
+    nameable(const std::string &name, const size_t &parent_id=0) {
         this->set_name(name);
         this->id = id_assigner::get_instance().get_id();
         this->parent_id = parent_id;

@@ -269,7 +269,7 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
             auto mes = "gate id:"+std::to_string(view->id)+" does not contain in/out gate";
             throw std::runtime_error(mes);
         }
-        auto bit_val = gt->get_values();
+        auto bit_val = gt->get_value();
         QString txt;
         txt.reserve(bit_val.size());
         for(const auto &bit:bit_val){
@@ -495,7 +495,7 @@ void sim_interface::set_in_value(std::shared_ptr<elem_view_in> view){
     }else if(bits.size() < out_width){
         bits.resize(out_width);
     }
-    elem_in->set_values(bits);
+    elem_in->set_value(bits);
 }
 
 void sim_interface::mousePressEvent(QMouseEvent *e){

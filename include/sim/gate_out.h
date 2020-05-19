@@ -20,13 +20,13 @@ public:
     ~gate_out(){}
 
     void pass_value()const{
-        auto &val = this->get_values();
+        auto &val = this->get_value();
         for(auto &in:ins){
-            in->set_values(val);
+            in->set_value(val);
         }
     }
     void pass_value(const std::vector<bool> &val){
-        set_values(val);
+        set_value(val);
         pass_value();
     }
     void tie_input(const std::shared_ptr<gate_in> &in){

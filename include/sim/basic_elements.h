@@ -6,21 +6,21 @@ class elem_basic:public element{
     using element::erase;
     using element::emplace_back;
 public:
-    elem_basic(const std::string &name, const size_t &parent_id=0)
-        :element(name, parent_id),
-        nameable(name, parent_id)
+    elem_basic(const std::string &name)
+        :element(name),
+        nameable(name)
     {}
 };
 
 class elem_and:public elem_basic{
 public:
-    elem_and(const std::string &name, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id)
+    elem_and(const std::string &name)
+        :elem_basic(name),
+        nameable(name)
     {
-        auto in1 = std::make_shared<gate_in>(name+"+in_0", 1, this->get_id());
-        auto in2 = std::make_shared<gate_in>(name+"+in_1", 1, this->get_id());
-        auto out1 = std::make_shared<gate_out>(name+"+out_1", 1, this->get_id());
+        auto in1 = std::make_shared<gate_in>(name+"+in_0", this->get_id());
+        auto in2 = std::make_shared<gate_in>(name+"+in_1", this->get_id());
+        auto out1 = std::make_shared<gate_out>(name+"+out_1", this->get_id());
         element::emplace_back(in1);
         element::emplace_back(in2);
         element::emplace_back(out1);
@@ -40,9 +40,9 @@ public:
 
 class elem_nand:public elem_basic{
 public:
-    elem_nand(const std::string &name, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id)
+    elem_nand(const std::string &name)
+        :elem_basic(name),
+        nameable(name)
     {
         auto in1 = std::make_shared<gate_in>(name+"+in_0", 1, this->get_id());
         auto in2 = std::make_shared<gate_in>(name+"+in_1", 1, this->get_id());
@@ -66,9 +66,9 @@ public:
 
 class elem_or:public elem_basic{
 public:
-    elem_or(const std::string &name, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id)
+    elem_or(const std::string &name)
+        :elem_basic(name),
+        nameable(name)
     {
         auto in1 = std::make_shared<gate_in>(name+"+in_0", 1, this->get_id());
         auto in2 = std::make_shared<gate_in>(name+"+in_1", 1, this->get_id());
@@ -92,9 +92,9 @@ public:
 
 class elem_nor:public elem_basic{
 public:
-    elem_nor(const std::string &name, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id)
+    elem_nor(const std::string &name)
+        :elem_basic(name),
+        nameable(name)
     {
         auto in1 = std::make_shared<gate_in>(name+"+in_0", 1, this->get_id());
         auto in2 = std::make_shared<gate_in>(name+"+in_1", 1, this->get_id());
@@ -118,9 +118,9 @@ public:
 
 class elem_xor:public elem_basic{
 public:
-    elem_xor(const std::string &name, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id)
+    elem_xor(const std::string &name)
+        :elem_basic(name),
+        nameable(name)
     {
         auto in1 = std::make_shared<gate_in>(name+"+in_0", 1, this->get_id());
         auto in2 = std::make_shared<gate_in>(name+"+in_1", 1, this->get_id());
@@ -144,9 +144,9 @@ public:
 
 class elem_xnor:public elem_basic{
 public:
-    elem_xnor(const std::string &name, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id)
+    elem_xnor(const std::string &name)
+        :elem_basic(name),
+        nameable(name)
     {
         auto in1 = std::make_shared<gate_in>(name+"+in_0", 1, this->get_id());
         auto in2 = std::make_shared<gate_in>(name+"+in_1", 1, this->get_id());
@@ -170,9 +170,9 @@ public:
 
 class elem_not:public elem_basic{
 public:
-    elem_not(const std::string &name, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id)
+    elem_not(const std::string &name)
+        :elem_basic(name),
+        nameable(name)
     {
         auto in1 = std::make_shared<gate_in>(name+"+in_0", 1, this->get_id());
         auto out1 = std::make_shared<gate_out>(name+"+out_1", 1, this->get_id());
@@ -213,9 +213,9 @@ protected:
     std::shared_ptr<Gt> gt;
     std::shared_ptr<Gt_outer> gt_outer;
 public:
-    elem_gate(const std::string &name, const std::string &gate_name, const size_t &width=1, const size_t &parent_id=0)
-        :elem_basic(name, parent_id),
-        nameable(name, parent_id),
+    elem_gate(const std::string &name, const std::string &gate_name, const size_t &width=1)
+        :elem_basic(name),
+        nameable(name),
         Gt(gate_name, width)
     {
         gt = std::make_shared<Gt>(gate_name, width);
@@ -225,7 +225,7 @@ public:
     void set_width(const size_t &width)override         { gt->set_width(width); }
     const size_t& get_width()const override             { return gt->get_width(); }
     bool get_value(const size_t &place)const override   { return gt->get_value(place); }
-    const std::vector<bool>& get_values()const override { return gt->get_values(); }
+    const std::vector<bool>& get_value()const override { return gt->get_value(); }
 
     std::shared_ptr<const gate> find_gate(const size_t &id)const override{
         if(gt->get_id() == id){
@@ -248,9 +248,9 @@ class elem_out:public elem_gate<gate_in, gate_out>{
     using element::get_out;
     friend class sim;
 public:
-    elem_out(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
-        :elem_gate(name, name+"_out", width, parent_id),
-        nameable(name, parent_id)
+    elem_out(const std::string &name, const size_t &width=1)
+        :elem_gate(name, name+"_out", width),
+        nameable(name)
     {
         elem_gate::gt_outer->parent_id = this->get_id();
         elem_gate::gt->parent_id = this->get_id();
@@ -259,11 +259,11 @@ public:
     ~elem_out(){}
 
     void process()override{
-        gt_outer->pass_value(gt->get_values());
+        gt_outer->pass_value(gt->get_value());
     }
 
-    void set_values(const std::vector<bool> &values)override{
-        gt->set_values(values);
+    void set_value(const std::vector<bool> &values)override{
+        gt->set_value(values);
     }
 
     size_t get_ins_size()const override { return 1; }
@@ -288,9 +288,9 @@ class elem_in:public elem_gate<gate_out, gate_in>{
     using element::get_in;
     friend class sim;
 public:
-    elem_in(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
-        :elem_gate(name, name+"_in", width, parent_id),
-        nameable(name, parent_id)
+    elem_in(const std::string &name, const size_t &width=1)
+        :elem_gate(name, name+"_in", width),
+        nameable(name)
     {
         elem_gate::gt_outer->parent_id = this->get_id();
         elem_gate::gt->parent_id = this->get_id();
@@ -299,11 +299,11 @@ public:
     ~elem_in(){}
 
     void process()override{
-        gt->pass_value(gt_outer->get_values());
+        gt->pass_value(gt_outer->get_value());
     }
 
-    void set_values(const std::vector<bool> &values)override{
-        gt_outer->set_values(values);
+    void set_value(const std::vector<bool> &values)override{
+        gt_outer->set_value(values);
     }
 
     size_t get_ins_size()const override { return 0; }

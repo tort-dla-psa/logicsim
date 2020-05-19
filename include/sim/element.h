@@ -16,8 +16,8 @@ protected:
 
     bool processed;
 public:
-    element(const std::string &name, const size_t &parent_id=0)
-        :nameable(name, parent_id)
+    element(const std::string &name)
+        :nameable(name)
     {
         reset_processed();
     }
