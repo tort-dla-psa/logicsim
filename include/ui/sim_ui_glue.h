@@ -192,6 +192,24 @@ public:
     void del_view(const size_t &id){
         auto it = find_view(id);
         auto el = *it;
+        for(auto el_:tree){
+            if(el_ == el){
+                continue;
+            }
+            //ISSUE:too complicated. we could search only through level of "el"
+            for(auto out:el_->outs){
+                auto in_it_ = out->ins.begin();
+                while(in_it_!= out->ins.end()){
+                    for(auto in:el->ins){
+                        if(*in_it_ == in){
+                            in_it_ = out->ins.erase(in_it_);
+                        }else{
+                            in_it_++;
+                        }
+                    }
+                }
+            }
+        }
         el->ins.clear();
         for(auto &out:el->outs){
             out->ins.clear();
