@@ -25,7 +25,11 @@ class elem_file_saver{
     enum class types_elem{
         t_meta,
         t_and,
+        t_nand,
         t_or,
+        t_nor,
+        t_xor,
+        t_xnor,
         t_not,
         t_in,
         t_out
@@ -72,7 +76,11 @@ class elem_file_saver{
     static types_elem p_elem_to_type(const elem_view* elem){
         if(dynamic_cast<const elem_view_meta*>(elem)){       return types_elem::t_meta;
         }else if(dynamic_cast<const elem_view_and*>(elem)){  return types_elem::t_and;
+        }else if(dynamic_cast<const elem_view_nand*>(elem)){ return types_elem::t_nand;
         }else if(dynamic_cast<const elem_view_or*>(elem)){   return types_elem::t_or;
+        }else if(dynamic_cast<const elem_view_nor*>(elem)){  return types_elem::t_nor;
+        }else if(dynamic_cast<const elem_view_xor*>(elem)){  return types_elem::t_xor;
+        }else if(dynamic_cast<const elem_view_xnor*>(elem)){ return types_elem::t_xnor;
         }else if(dynamic_cast<const elem_view_not*>(elem)){  return types_elem::t_not;
         }else if(dynamic_cast<const elem_view_in*>(elem)){   return types_elem::t_in;
         }else if(dynamic_cast<const elem_view_out*>(elem)){  return types_elem::t_out;
@@ -85,7 +93,11 @@ class elem_file_saver{
     static types_elem p_elem_to_type(const element* elem){
         if(dynamic_cast<const elem_meta*>(elem)){       return types_elem::t_meta;
         }else if(dynamic_cast<const elem_and*>(elem)){  return types_elem::t_and;
+        }else if(dynamic_cast<const elem_nand*>(elem)){ return types_elem::t_nand;
         }else if(dynamic_cast<const elem_or*>(elem)){   return types_elem::t_or;
+        }else if(dynamic_cast<const elem_nor*>(elem)){  return types_elem::t_nor;
+        }else if(dynamic_cast<const elem_xor*>(elem)){  return types_elem::t_xor;
+        }else if(dynamic_cast<const elem_xnor*>(elem)){ return types_elem::t_xnor;
         }else if(dynamic_cast<const elem_not*>(elem)){  return types_elem::t_not;
         }else if(dynamic_cast<const elem_in*>(elem)){   return types_elem::t_in;
         }else if(dynamic_cast<const elem_out*>(elem)){  return types_elem::t_out;
@@ -98,7 +110,11 @@ class elem_file_saver{
     static std::unique_ptr<element> p_type_to_elem(const types_elem &type, const std::string &name){
         if(type == types_elem::t_meta){         return std::make_unique<elem_meta>(name);
         }else if(type == types_elem::t_and){    return std::make_unique<elem_and>(name);
+        }else if(type == types_elem::t_nand){   return std::make_unique<elem_nand>(name);
         }else if(type == types_elem::t_or){     return std::make_unique<elem_or>(name);
+        }else if(type == types_elem::t_nor){    return std::make_unique<elem_nor>(name);
+        }else if(type == types_elem::t_xor){    return std::make_unique<elem_xor>(name);
+        }else if(type == types_elem::t_xnor){   return std::make_unique<elem_xnor>(name);
         }else if(type == types_elem::t_not){    return std::make_unique<elem_not>(name);
         }else if(type == types_elem::t_in){     return std::make_unique<elem_in>(name);
         }else if(type == types_elem::t_out){    return std::make_unique<elem_out>(name);
@@ -112,7 +128,11 @@ class elem_file_saver{
         std::shared_ptr<elem_view> view;
         if(type == types_elem::t_meta){         view = std::make_shared<elem_view_meta>();
         }else if(type == types_elem::t_and){    view = std::make_shared<elem_view_and>();
+        }else if(type == types_elem::t_nand){   view = std::make_shared<elem_view_nand>();
         }else if(type == types_elem::t_or){     view = std::make_shared<elem_view_or>();
+        }else if(type == types_elem::t_nor){    view = std::make_shared<elem_view_nor>();
+        }else if(type == types_elem::t_xor){    view = std::make_shared<elem_view_xor>();
+        }else if(type == types_elem::t_xnor){   view = std::make_shared<elem_view_xnor>();
         }else if(type == types_elem::t_not){    view = std::make_shared<elem_view_not>();
         }else if(type == types_elem::t_in){     view = std::make_shared<elem_view_in>();
         }else if(type == types_elem::t_out){    view = std::make_shared<elem_view_out>();

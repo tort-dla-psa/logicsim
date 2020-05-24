@@ -56,12 +56,22 @@ std::shared_ptr<elem_view> sim_interface::elem_to_view(const std::unique_ptr<ele
         view = out_cast;
     }else if(dynamic_cast<class elem_and*>(elem.get())){
         view = std::make_shared<elem_view_and>();
+    }else if(dynamic_cast<class elem_nand*>(elem.get())){
+        view = std::make_shared<elem_view_nand>();
     }else if(dynamic_cast<class elem_or*>(elem.get())){
         view = std::make_shared<elem_view_or>();
+    }else if(dynamic_cast<class elem_nor*>(elem.get())){
+        view = std::make_shared<elem_view_nor>();
+    }else if(dynamic_cast<class elem_xor*>(elem.get())){
+        view = std::make_shared<elem_view_xor>();
+    }else if(dynamic_cast<class elem_xnor*>(elem.get())){
+        view = std::make_shared<elem_view_xnor>();
     }else if(dynamic_cast<class elem_not*>(elem.get())){
         view = std::make_shared<elem_view_not>();
     }else if(dynamic_cast<class elem_meta*>(elem.get())){
         view = std::make_shared<elem_view_meta>();
+    }else{
+        throw std::runtime_error("unknown element to make view");
     }
     auto id = elem->get_id();
 
@@ -192,9 +202,10 @@ void sim_interface::draw_not(QPainter &p, int x, int y, int w, int h){
     path.lineTo(x, y);
     p.drawPath(path);
 }
-void sim_interface::draw_meta(QPainter &p, int x, int y, int w, int h){
+void sim_interface::draw_meta(QPainter &p, const std::string &name, int x, int y, int w, int h){
     QRectF rect(x, y, w, h); 
     p.drawRect(rect);
+    p.drawText(x, y+h/2, QString::fromStdString(name));
 }
 void sim_interface::draw_out(QPainter &p, int x, int y, int w, int h){
     QRectF rect(x, y, w, h); 
@@ -228,10 +239,9 @@ void sim_interface::draw_elem_view(QPainter &pnt, const std::shared_ptr<elem_vie
     }else if(std::dynamic_pointer_cast<elem_view_not>(view)){
         draw_not(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
     }else if(std::dynamic_pointer_cast<elem_view_meta>(view)){
-        draw_meta(pnt, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
+        draw_meta(pnt, view->name, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
     }else{
-        QRectF rect(this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
-        pnt.drawRect(rect);
+        draw_meta(pnt, view->name, this->default_gate_w/2, this->default_gate_h/2, draw_w, draw_h); 
     }
 
     for(auto &gate:view->ins){
@@ -455,6 +465,9 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
             return;
         }
     }
+    if(this->gate_view_1){
+        this->mode = mode::connect_gates;
+    }
     if(this->mouse_pos_prev.has_value() && this->mode == mode::still){//click happened
         this->mode = mode::select_frame;
     }
@@ -513,6 +526,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             view->st = elem_view::state::selected;
             emit element_selected(view);
         }else if(e->buttons() & Qt::RightButton){
+            //deselect element
             auto el_it = sim.get_by_id(this->view->id);
             sim.erase(el_it);
             view = nullptr;
@@ -548,7 +562,7 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
             //check if user clicked on a gate
             auto gates = glue.get_gates(map_x, map_y);
             if(!gates.empty()){
-                this->mode = mode::connect_gates;
+                //this->mode = mode::connect_gates;
                 this->gate_view_1 = gates.front();
                 return;
             }
@@ -584,7 +598,10 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
     }
     if(this->mode == mode::connect_gates && this->gate_view_1) {
         auto gates = glue.get_gates(x, y);
-        if(gates.empty()){
+        if(gates.empty()){ //no gate to connect
+            this->gate_view_1 = nullptr;
+            this->mode = mode::still;
+            reset_pos();
             return;
         }
         this->gate_view_2 = gates.front();
@@ -698,24 +715,27 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
     }
 }
 
-void sim_interface::add_elem_and(){
-    create_elem<elem_and>("and");
-}
-void sim_interface::add_elem_or(){
-    create_elem<elem_or>("or");
-}
-void sim_interface::add_elem_not(){
-    create_elem<elem_not>("not");
-}
-void sim_interface::add_elem_in(){
-    create_elem<elem_in>("in");
-}
-void sim_interface::add_elem_out(){
-    create_elem<elem_out>("out");
-}
-void sim_interface::add_elem_meta(){
-    create_elem<elem_meta>("custom");
-}
+void sim_interface::add_elem_and()
+{ create_elem<elem_and>("and"); }
+void sim_interface::add_elem_nand()
+{ create_elem<elem_nand>("nand"); }
+void sim_interface::add_elem_or()
+{ create_elem<elem_or>("or"); }
+void sim_interface::add_elem_xor()
+{ create_elem<elem_xor>("xor"); }
+void sim_interface::add_elem_nor()
+{ create_elem<elem_nor>("nor"); }
+void sim_interface::add_elem_xnor()
+{ create_elem<elem_xnor>("xnor"); }
+void sim_interface::add_elem_not()
+{ create_elem<elem_not>("not"); }
+void sim_interface::add_elem_in()
+{ create_elem<elem_in>("in"); }
+void sim_interface::add_elem_out()
+{ create_elem<elem_out>("out"); }
+void sim_interface::add_elem_meta()
+{ create_elem<elem_meta>("custom"); }
+
 void sim_interface::save_sim(QString path){
     std::filesystem::path std_path = path.toStdString();
     elem_file_saver saver;

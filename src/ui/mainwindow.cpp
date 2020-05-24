@@ -12,8 +12,16 @@ MainWindow::MainWindow(QWidget *parent)
 	this->sim_iface = ui->sim_view_wdgt;
 	connect(ui->btn_and, &QPushButton::pressed,
 		sim_iface, &sim_interface::add_elem_and);
+	connect(ui->btn_nand, &QPushButton::pressed,
+		sim_iface, &sim_interface::add_elem_nand);
 	connect(ui->btn_or, &QPushButton::pressed,
 		sim_iface, &sim_interface::add_elem_or);
+	connect(ui->btn_nor, &QPushButton::pressed,
+		sim_iface, &sim_interface::add_elem_nor);
+	connect(ui->btn_xor, &QPushButton::pressed,
+		sim_iface, &sim_interface::add_elem_xor);
+	connect(ui->btn_xnor, &QPushButton::pressed,
+		sim_iface, &sim_interface::add_elem_xnor);
 	connect(ui->btn_not, &QPushButton::pressed,
 		sim_iface, &sim_interface::add_elem_not);
 	connect(ui->btn_in, &QPushButton::pressed,

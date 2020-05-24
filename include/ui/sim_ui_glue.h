@@ -71,7 +71,11 @@ struct elem_view:view{
 };
 
 struct elem_view_and:elem_view{};
+struct elem_view_nand:elem_view{};
 struct elem_view_or:elem_view{};
+struct elem_view_nor:elem_view{};
+struct elem_view_xor:elem_view{};
+struct elem_view_xnor:elem_view{};
 struct elem_view_not:elem_view{};
 struct elem_view_gate:elem_view{};
 struct elem_view_in:elem_view_gate{

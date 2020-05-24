@@ -59,7 +59,7 @@ class sim_interface : public draw_widget {
     void draw_and(QPainter &p, int x, int y, int w, int h);
     void draw_or(QPainter &p, int x, int y, int w, int h);
     void draw_not(QPainter &p, int x, int y, int w, int h);
-    void draw_meta(QPainter &p, int x, int y, int w, int h);
+    void draw_meta(QPainter &p, const std::string &name, int x, int y, int w, int h);
     void draw_out(QPainter &p, int x, int y, int w, int h);
     void draw_in(QPainter &p, int x, int y, int w, int h);
     void try_tick();
@@ -96,7 +96,11 @@ public:
     void paintEvent(QPaintEvent *e)override;
 public slots:
     void add_elem_and();
+    void add_elem_nand();
     void add_elem_or();
+    void add_elem_xor();
+    void add_elem_nor();
+    void add_elem_xnor();
     void add_elem_not();
     void add_elem_in();
     void add_elem_out();
