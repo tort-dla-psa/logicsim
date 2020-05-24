@@ -25,6 +25,7 @@ struct view{
         cut
     }st;
 
+    view(){};
     virtual ~view(){}
 };
 
@@ -33,8 +34,8 @@ struct gate_view:view{
         in,
         out
     }dir;
-    size_t bit_width;
-    int value;
+    size_t bit_width=1;
+    int value=0;
 
     gate_view(){
         this->w = 10;

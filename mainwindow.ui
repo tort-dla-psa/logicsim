@@ -119,6 +119,12 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
+   <property name="minimumSize">
+    <size>
+     <width>220</width>
+     <height>49</height>
+    </size>
+   </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
@@ -128,7 +134,7 @@
       <widget class="properties" name="props" native="true">
        <property name="minimumSize">
         <size>
-         <width>90</width>
+         <width>120</width>
          <height>0</height>
         </size>
        </property>

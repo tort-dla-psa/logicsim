@@ -23,7 +23,7 @@ class sim_interface : public draw_widget {
     std::optional<QPoint> mouse_pos_prev, mouse_pos_prev_move, mouse_pos;
     sim_ui_glue glue;
 
-    std::shared_ptr<elem_view> view;
+    std::shared_ptr<elem_view> m_view;
     std::vector<std::shared_ptr<elem_view>> selected_views;
     std::shared_ptr<gate_view> gate_view_1, gate_view_2;
 
@@ -66,16 +66,16 @@ class sim_interface : public draw_widget {
 
     template<class Elem>
     void create_elem(const std::string &name){
-        if(this->view){
-            this->view->st = elem_view::state::normal;
+        if(this->m_view){
+            this->m_view->st = elem_view::state::normal;
         }
         this->mode = mode::create;
         auto elem = std::make_unique<Elem>(name);
         auto root_id = this->glue.get_root()->id;
         auto root_it = sim.get_by_id(root_id);
         auto &ref = *sim.emplace(root_it, std::move(elem));
-        this->view = elem_to_view(ref);
-        this->view->st = elem_view::state::creating;
+        this->m_view = elem_to_view(ref);
+        this->m_view->st = elem_view::state::creating;
     }
 
     void set_in_value(std::shared_ptr<elem_view_in> view);
@@ -117,6 +117,6 @@ private slots:
     void cut_items_cm();
     void go_up_cm();
 signals:
-    void element_selected(std::shared_ptr<elem_view> view);
-    void element_changed(std::shared_ptr<elem_view> view);
+    void element_selected(std::shared_ptr<class view> view);
+    void element_changed(std::shared_ptr<class view> view);
 };

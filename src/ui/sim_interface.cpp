@@ -9,6 +9,7 @@
 #include <QAction>
 #include <QPen>
 #include <filesystem>
+#include <memory>
 
 void sim_interface::connect_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2){
     bool valid = false;
@@ -330,16 +331,16 @@ void sim_interface::try_tick(){
 }
 
 void sim_interface::delete_item_cm(){
-    auto &id =this->view->id;
+    auto &id =this->m_view->id;
     glue.del_view(id);
     auto el = sim.get_by_id(id);
     sim.erase(el);
-    this->view = nullptr;
+    this->m_view = nullptr;
     emit element_selected(nullptr);
     update();
 }
 void sim_interface::cut_item_cm(){
-    this->view->st = elem_view::state::cut;
+    this->m_view->st = elem_view::state::cut;
     update();
 }
 void sim_interface::delete_items_cm(){
@@ -347,8 +348,8 @@ void sim_interface::delete_items_cm(){
         glue.del_view(el->id);
         auto el_it = sim.get_by_id(el->id);
         sim.erase(el_it);
-        if(el == this->view){
-            this->view = nullptr;
+        if(el == this->m_view){
+            this->m_view = nullptr;
             emit element_selected(nullptr);
         }
     }
@@ -421,7 +422,7 @@ void sim_interface::showContextMenu(const QPoint &p){
         show_menu_for_elements(p);
         return;
     }
-    if(this->view && this->view->st == elem_view::state::selected){
+    if(this->m_view && this->m_view->st == elem_view::state::selected){
         show_menu_for_element(p);
         return;
     }
@@ -436,9 +437,9 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
     auto y = e->y();
 
     if(mode == mode::create){
-        view->x = x;
-        view->y = y;
-        emit element_selected(view);
+        m_view->x = x;
+        m_view->y = y;
+        emit element_selected(m_view);
         update();
         return;
     }
@@ -484,7 +485,7 @@ void sim_interface::mouseMoveEvent(QMouseEvent *e){
 
 void sim_interface::dive_into_meta(std::shared_ptr<elem_view_meta> value){
     glue.set_root(value);
-    this->view = nullptr;
+    this->m_view = nullptr;
     emit element_selected(nullptr);
     this->selected_views.clear();
     this->mode = mode::still;
@@ -519,59 +520,68 @@ void sim_interface::mousePressEvent(QMouseEvent *e){
     auto map_y = (y-cam.y)*1./cam.zoom;
 
     //place created element or destroy it
-    if(this->view && mode == mode::create){
+    if(this->m_view && mode == mode::create){
         if(e->buttons() & Qt::LeftButton){
-            glue.add_view(view);
+            glue.add_view(m_view);
             mode = mode::select;
-            view->st = elem_view::state::selected;
-            emit element_selected(view);
+            m_view->st = elem_view::state::selected;
+            emit element_selected(m_view);
         }else if(e->buttons() & Qt::RightButton){
             //deselect element
-            auto el_it = sim.get_by_id(this->view->id);
+            auto el_it = sim.get_by_id(this->m_view->id);
             sim.erase(el_it);
-            view = nullptr;
+            m_view = nullptr;
             mode = mode::still;
         }
         update();
         return;
     }
     if(e->buttons() & Qt::LeftButton){
-        //check if user clicked on a view of element
-        auto items = glue.find_views(map_x, map_y);
-        if(!items.empty()){
-            if(this->view == items.front() && mode == mode::select){
-                auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
-                if(cast_in){
-                    set_in_value(cast_in);
-                    try_tick();
-                    return;
-                }
-                auto cast_meta = std::dynamic_pointer_cast<elem_view_meta>(view);
-                if(cast_meta){
-                    dive_into_meta(cast_meta);
-                    return;
-                }
-            }else{
-                this->view = items.front();
-                this->view->st = elem_view::state::selected;
-                this->mode = mode::select;
-                emit element_selected(view);
-                return;
-            }
+        //check if user clicked on a gate. we prefer gates over elements
+        auto gates = glue.get_gates(map_x, map_y);
+        if(!gates.empty()){
+            //this->mode = mode::connect_gates;
+            this->gate_view_1 = gates.front();
+            this->gate_view_1->st = elem_view::state::selected;
+            auto view = std::dynamic_pointer_cast<class view>(gate_view_1);
+            emit element_selected(view);
+            return;
         }else{
-            //check if user clicked on a gate
-            auto gates = glue.get_gates(map_x, map_y);
-            if(!gates.empty()){
-                //this->mode = mode::connect_gates;
-                this->gate_view_1 = gates.front();
-                return;
+            //check if user clicked on a view of element
+            auto items = glue.find_views(map_x, map_y);
+            if(!items.empty()){
+                if(this->m_view == items.front() && mode == mode::select){
+                    auto cast_in = std::dynamic_pointer_cast<elem_view_in>(m_view);
+                    if(cast_in){
+                        set_in_value(cast_in);
+                        try_tick();
+                        return;
+                    }
+                    auto cast_meta = std::dynamic_pointer_cast<elem_view_meta>(m_view);
+                    if(cast_meta){
+                        dive_into_meta(cast_meta);
+                        return;
+                    }
+                }else{
+                    this->m_view = items.front();
+                    this->m_view->st = elem_view::state::selected;
+                    this->mode = mode::select;
+                    emit element_selected(m_view);
+                    return;
+                }
             }
         }
         //deselect element
         mode = mode::still;
-        if(this->view){
-            this->view->st = elem_view::state::normal;
-            this->view = nullptr;
+        if(this->m_view){
+            this->m_view->st = elem_view::state::normal;
+            this->m_view = nullptr;
+            emit element_selected(nullptr);
+        }
+        if(this->gate_view_1){
+            this->gate_view_1->st = elem_view::state::normal;
+            this->gate_view_1 = nullptr;
+            emit element_selected(nullptr);
         }
         for(auto &v:selected_views){
             v->st = elem_view::state::normal;
@@ -592,7 +602,7 @@ void sim_interface::mouseReleaseEvent(QMouseEvent *e){
         reset_pos();
         return;
     }
-    if(this->mode == mode::select && view){
+    if(this->mode == mode::select && m_view){
         reset_pos();
         return;
     }
@@ -631,9 +641,9 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
     bool plus = std::find(beg, end, Qt::Key_Equal) != end;
     bool minus = std::find(beg, end, Qt::Key_Minus) != end;
     bool x = std::find(beg, end, Qt::Key_X) != end;
-    if(this->view){
+    if(this->m_view){
         if(ctrl && (left || right)){
-            int cast = (int)view->dir;
+            int cast = (int)m_view->dir;
             if(left){
                 cast ++;
             }else{
@@ -641,8 +651,8 @@ void sim_interface::keyPressEvent(QKeyEvent* e){
                 cast += 4;
             }
             cast %= 4;
-            view->dir = (elem_view::direction)cast;
-            rotate_view(view);
+            m_view->dir = (elem_view::direction)cast;
+            rotate_view(m_view);
             return;
         }
     }
@@ -688,7 +698,7 @@ void sim_interface::paintEvent(QPaintEvent *e) {
         draw_elem_view(pnt, el);
     }
     if(mode == mode::create){
-        draw_elem_view(pnt, this->view);
+        draw_elem_view(pnt, this->m_view);
     }else if(mode == mode::connect_gates &&
         mouse_pos_prev.has_value() && mouse_pos.has_value())
     {
@@ -703,16 +713,25 @@ void sim_interface::paintEvent(QPaintEvent *e) {
 }
 
 void sim_interface::slot_propery_changed(const prop_pair* prop){
-    if(this->view && !prop->get_line_edit()->text().isEmpty()){
-        prop->set_view_value(this->view);
-        auto gate_cast = std::dynamic_pointer_cast<gate_view>(view);
-        if(gate_cast && prop->name() == "bit_w"){
-            auto view_parent_it = sim.get_by_id(view->parent_id);
-            auto gt = (*view_parent_it)->find_gate(view->id);
-            gt->set_width(gate_cast->bit_width);
-        }
-        update();
+    if(prop->get_line_edit()->text().isEmpty()){//skip empty edits
+        return;
     }
+    std::shared_ptr<class view> view = (this->m_view)?
+        std::dynamic_pointer_cast<class view>(this->m_view):
+            (this->gate_view_1)?
+                std::dynamic_pointer_cast<class view>(this->gate_view_1):
+                nullptr;
+    if(!view){
+        return; //no selected view
+    }
+    prop->set_view_value(view);
+    auto gate_cast = std::dynamic_pointer_cast<gate_view>(view);
+    if(gate_cast && prop->name() == "bit_w"){
+        auto view_parent_it = sim.get_by_id(view->parent_id);
+        auto gt = (*view_parent_it)->find_gate(gate_cast->id);
+        gt->set_width(gate_cast->bit_width);
+    }
+    update();
 }
 
 void sim_interface::add_elem_and()
@@ -756,7 +775,7 @@ void sim_interface::load_sim(QString path){
     this->sim = std::move(tmp);
     auto glue(loader.glue_from_json(json_glue));
     this->glue = glue;
-    this->view = nullptr;
+    this->m_view = nullptr;
     this->gate_view_1 = gate_view_2 = nullptr;
     this->mode = mode::still;
 }

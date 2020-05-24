@@ -22,14 +22,14 @@ class properties : public QWidget {
 	std::vector<prop_pair*> props;
 
 	void update_props();
-	void update_props(const std::shared_ptr<view> &view);
+	void update_props(const std::shared_ptr<class view> &view);
 public:
 	properties(QWidget *parent = nullptr);
 	virtual ~properties();
 signals:
 	void property_changed(const prop_pair* prop);
 public slots:
-	void slot_element_selected(std::shared_ptr<view> view);
+	void slot_element_selected(std::shared_ptr<class view> view);
 	void reset();
 private slots:
 	void slot_prop_changed();

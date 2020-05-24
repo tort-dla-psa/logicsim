@@ -65,19 +65,28 @@ properties::properties(QWidget* parent)
         if(cast_out){
             return QString::number(cast_out->ins.at(0)->bit_width);
         }
+        auto gate_cast = std::dynamic_pointer_cast<gate_view>(view);
+        if(gate_cast){
+            return QString::number(gate_cast->bit_width);
+        }
         return QString::number(0);
     }); 
     prop->set_setter([prop](auto view){
         auto le = prop->get_line_edit();
+        auto data = le->text().toLong();
         auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
         if(cast_in){
-            cast_in->outs.at(0)->bit_width = le->text().toLong();
+            cast_in->outs.at(0)->bit_width = data;
             return;
         }
         auto cast_out = std::dynamic_pointer_cast<elem_view_out>(view);
         if(cast_out){
-            cast_out->ins.at(0)->bit_width = le->text().toLong();
+            cast_out->ins.at(0)->bit_width = data;
             return;
+        }
+        auto gate_cast = std::dynamic_pointer_cast<gate_view>(view);
+        if(gate_cast){
+            gate_cast->bit_width = data;
         }
     }); 
     prop->hide();
@@ -97,7 +106,7 @@ properties::properties(QWidget* parent)
             return QString::number(cast_view_out->ins.at(0)->value);
         }
         return QString::number(0);
-    }); 
+    });
     prop->set_setter([prop](auto view){
         auto le = prop->get_line_edit();
         auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
@@ -105,7 +114,7 @@ properties::properties(QWidget* parent)
             cast_in->outs.at(0)->bit_width = le->text().toLong();
             return;
         }
-    }); 
+    });
     prop->hide();
 
     for(auto prop:props){
@@ -134,7 +143,9 @@ void properties::update_props(const std::shared_ptr<view> &view){
         {
             prop->show();
         }else if(name == "bit_w"){
-            if(std::dynamic_pointer_cast<elem_view_gate>(view)){
+            if(std::dynamic_pointer_cast<elem_view_gate>(view)||
+                std::dynamic_pointer_cast<gate_view>(view))
+            {
                 prop->show();
             }else{
                 prop->hide();
