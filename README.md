@@ -2,6 +2,7 @@
 
 # logicsim
 Modern c++/qt logic blocks simulator designed as a successor of famous [Logisim](http://www.cburch.com/logisim/), which I absolutely love and recommend to try.
+Uses my [k-tree](https://github.com/tort-dla-psa/k_tree) library as a container for gates, take a look at it too.
 
 ## Prerequisites
 * Qt5
@@ -20,9 +21,7 @@ make -j4
 ```
 
 ## TODO
-* add multibits inputs in gates
 * add tests 
 * add examples
-* add value input from properties to real gates
 * fix camera zoom and moving
 * fix gates resizing
