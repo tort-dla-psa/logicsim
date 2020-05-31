@@ -1,5 +1,5 @@
 project(logicsim)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10)
 
 set (CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set (CMAKE_CXX_STANDARD 17)
@@ -9,7 +9,10 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON )
 include(make_ui)
 include_directories(include include/ui tests
 	submodules/nlohmann-json/single_include
-	submodules/k-tree)
+	submodules/k-tree
+	${Qt5Widgets_INCLUDE_DIRS}
+	${Qt5Core_INCLUDE_DIRS}
+	)
 
 add_executable( ${PROJECT_NAME} main.cpp
 	${UI_SRCS}
@@ -18,6 +21,7 @@ add_executable( ${PROJECT_NAME} main.cpp
     src/ui/mainwindow.cpp
 	)
 target_link_libraries(${PROJECT_NAME} stdc++fs)
+add_definitions(-fPIC)
 
 qt5_use_modules( ${PROJECT_NAME} Core Gui Widgets)
 

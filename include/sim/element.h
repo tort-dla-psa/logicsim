@@ -4,8 +4,9 @@
 #include "gate_out.h"
 #include "gate_in.h"
 #include "nameable.h"
+#include "iserializable.h"
 
-class element:virtual public nameable{
+class element:virtual public nameable, virtual public ISerializable{
 public:
     using ins_vec = std::vector<std::shared_ptr<gate_in>>;
     using outs_vec = std::vector<std::shared_ptr<gate_out>>;
@@ -17,7 +18,8 @@ protected:
     bool processed;
 public:
     element(const std::string &name)
-        :nameable(name)
+        :nameable(name),
+        ISerializable()
     {
         reset_processed();
     }
@@ -103,7 +105,7 @@ public:
     void insert(const std::shared_ptr<gate_in> in, size_t place){
         if(place > ins.size()){
             auto mes = "attempt to add input in place "+std::to_string(place)+
-                "to element "+get_name()+", which has "+std::to_string(get_ins_size())+
+                "to element "+name()+", which has "+std::to_string(get_ins_size())+
                 "inputs";
             throw std::runtime_error(mes);
         }
@@ -112,7 +114,7 @@ public:
     void insert(const std::shared_ptr<gate_out> out, size_t place){
         if(place > outs.size()){
             auto mes = "attempt to add output in place "+std::to_string(place)+
-                "to element "+get_name()+", which has "+std::to_string(get_outs_size())+
+                "to element "+name()+", which has "+std::to_string(get_outs_size())+
                 "outputs";
             throw std::runtime_error(mes);
         }
@@ -141,5 +143,46 @@ public:
     }
     friend bool operator!=(const element &lhs, const element &rhs){
         return !(lhs == rhs);
+    }
+
+    virtual bool from_json(const nlohmann::json &j)override{
+        nameable::m_name =  j.at("name");
+        nameable::m_id = j.at("id");
+        nameable::m_parent_id = j.at("parent_id");
+        auto &ins = get_ins();
+        auto &outs = get_outs();
+        ins.clear();
+        outs.clear();
+        bool status = true;
+        for(auto &j_obj:j.at("ins")){
+            auto gt_tmp = std::make_shared<gate_in>();
+            status &= gt_tmp->from_json(j_obj);
+            ins.emplace_back(gt_tmp);
+        }
+        for(auto &j_obj:j.at("outs")){
+            auto gt_tmp = std::make_shared<gate_out>();
+            status &= gt_tmp->from_json(j_obj);
+            outs.emplace_back(gt_tmp);
+        }
+        return status;
+    }
+
+    virtual void to_json(nlohmann::json &j)const override{
+        j["id"] = id();
+        j["parent_id"] = parent_id();
+        j["name"] = name();
+
+        std::vector<nlohmann::json> ins,outs;
+        nlohmann::json tmp;
+        for(auto &gt:this->ins){
+            gt->to_json(tmp);
+            ins.emplace_back(std::move(tmp));
+        }
+        for(auto &gt:this->outs){
+            gt->to_json(tmp);
+            outs.emplace_back(std::move(tmp));
+        }
+        j["ins"] = std::move(ins);
+        j["outs"] = std::move(outs);
     }
 };

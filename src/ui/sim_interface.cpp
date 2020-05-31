@@ -724,7 +724,19 @@ void sim_interface::slot_propery_changed(const prop_pair* prop){
     if(!view){
         return; //no selected view
     }
-    prop->set_view_value(view);
+    auto name = prop->name();
+    auto val = prop->get_value();
+    if(name == "w"){
+        view->w = val.toInt();
+    }else if(name == "h"){
+        view->h = val.toInt();
+    }else if(name == "x"){
+        view->x = val.toInt();
+    }else if(name == "y"){
+        view->y = val.toInt();
+    }else if(name == "name"){
+        view->name = val.toStdString();
+    }
     auto gate_cast = std::dynamic_pointer_cast<gate_view>(view);
     if(gate_cast && prop->name() == "bit_w"){
         auto view_parent_it = sim.get_by_id(view->parent_id);

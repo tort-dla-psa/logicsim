@@ -1,4 +1,5 @@
 build
+.clangd
 .vscode
 *.pro
 *.sim

@@ -31,16 +31,6 @@ void prop_pair::reset(){
 const QString& prop_pair::name()const{
     return m_name;
 }
-void prop_pair::set_view_value(std::shared_ptr<view> view)const{
-    if(setter.has_value()){
-        (*setter)(view);
-    }
-}
-void prop_pair::set_line_edit_value(std::shared_ptr<view> view){
-    if(getter.has_value()){
-        this->le->setText((*getter)(view));
-    }
-}
 const QLabel* prop_pair::get_label()const{
     return this->lbl;
 }
@@ -53,11 +43,8 @@ const QLineEdit* prop_pair::get_line_edit()const{
 QLineEdit* prop_pair::get_line_edit(){
     return this->le;
 }
-void prop_pair::set_getter(prop_func_get getter){
-    this->getter.emplace(getter);
-}
-void prop_pair::set_setter(prop_func_set setter){
-    this->setter.emplace(setter);
+QString prop_pair::get_value()const{
+    return this->le->text();
 }
 void prop_pair::slot_text_changed(QString txt){
     emit text_changed();

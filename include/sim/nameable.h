@@ -2,52 +2,42 @@
 #include <string>
 
 class nameable{
+protected:
     friend class elem_file_saver;
+    friend class sim;
+    friend class gate_in;
+    friend class gate_out;
     friend class elem_in;
     friend class elem_out;
-    friend class sim;
-    std::string name;
-    size_t id, parent_id;
+    std::string m_name;
+    size_t m_id, m_parent_id;
 
-    class id_assigner{
-    private:
-        size_t last_id=-1; //to start from zero
-        id_assigner(){};
-    public:
-        static id_assigner& get_instance(){
-            static id_assigner inst;
-            return inst;
-        }
-        size_t get_id(){
-            last_id++;
-            return last_id;
-        }
-    };
+    inline static size_t last_id=-1;
 public:
     nameable(const std::string &name, const size_t &parent_id=0) {
-        this->set_name(name);
-        this->id = id_assigner::get_instance().get_id();
-        this->parent_id = parent_id;
+        m_name = name;
+        m_id = ++last_id;
+        m_parent_id = parent_id;
     }
-    virtual size_t get_id()const{
-        return id;
+    virtual size_t id()const{
+        return m_id;
     }
-    virtual size_t get_parent_id()const{
-        return parent_id;
+    virtual size_t parent_id()const{
+        return m_parent_id;
     }
-    const std::string& get_name()const{
-        return name;
+    const std::string& name()const{
+        return m_name;
     }
-    std::string get_name(){
-        return name;
+    std::string name(){
+        return m_name;
     }
     void set_name(const std::string &name){
-        this->name = name;
+        m_name = name;
     }
 
     friend bool operator==(const nameable &lhs, const nameable &rhs){
-        return lhs.id == rhs.id &&
-            lhs.name == rhs.name;
+        return lhs.m_id == rhs.m_id &&
+            lhs.m_name == rhs.m_name;
     }
     friend bool operator!=(const nameable &lhs, const nameable &rhs){
         return !(lhs == rhs);

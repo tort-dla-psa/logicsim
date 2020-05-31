@@ -5,6 +5,7 @@
 #include "gate_in.h"
 #include "gate.h"
 #include "helpers.h"
+#include "iserializable.h"
 
 class gate_out:public gate{
 public:
@@ -15,12 +16,13 @@ private:
 public:
     gate_out(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
         :gate(name, width, parent_id),
+        ISerializable(),
         nameable(name, parent_id)
     {}
     ~gate_out(){}
 
     void pass_value()const{
-        auto &val = this->get_value();
+        auto &val = this->value();
         for(auto &in:ins){
             in->set_value(val);
         }
@@ -30,10 +32,10 @@ public:
         pass_value();
     }
     void tie_input(const std::shared_ptr<gate_in> &in){
-        if(in->get_width() != this->get_width()){
-            auto mes = "attempt to tie input "+in->get_name()+
-                " of width "+std::to_string(in->get_width())+
-                "to an output "+get_name()+" of width "+std::to_string(get_width());
+        if(in->width() != this->width()){
+            auto mes = "attempt to tie input "+in->name()+
+                " of width "+std::to_string(in->width())+
+                "to an output "+name()+" of width "+std::to_string(width());
             throw std::runtime_error(mes);
         }
         this->ins.emplace_back(in);
@@ -41,8 +43,8 @@ public:
     void untie_input(const std::shared_ptr<gate_in> &in){
         auto it = std::find(ins.begin(), ins.end(), in);
         if(it == ins.end()){
-            auto mes = "attempt to untie input "+in->get_name()+
-                "from an output "+get_name()+", but they are not tied";
+            auto mes = "attempt to untie input "+in->name()+
+                "from an output "+name()+", but they are not tied";
             throw std::runtime_error(mes);
         }
         ins.erase(it);
@@ -82,5 +84,35 @@ public:
     }
     friend bool operator!=(const gate_out &lhs, const gate_out &rhs){
         return !(lhs == rhs);
+    }
+    virtual void to_json(nlohmann::json &j)const override{
+        j["token"] = token();
+        j["id"] = id();
+        j["parent_id"] = parent_id();
+        j["name"] = name();
+        j["width"] = width();
+        std::vector<std::pair<size_t, size_t>> ids;
+        ids.reserve(ins.size());
+        for(auto &in:ins){
+            ids.emplace_back(in->id(), in->parent_id());
+        }
+        j["tied"] = std::move(ids);
+    }
+    virtual bool from_json(const nlohmann::json &j)override{
+        if(j.at("token") != token()){
+            return false;
+        }
+        nameable::m_id = j.at("id");
+        nameable::m_parent_id = j.at("parent_id");
+        nameable::m_name = j.at("name");
+        gate::m_width = j.at("width");
+        std::vector<std::pair<size_t, size_t>> placeholders;
+        j.at("tied").get_to(placeholders);
+        for(auto &p:placeholders){
+            auto in = std::make_shared<gate_in>("placeholder", 1, p.second);
+            in->nameable::m_id = p.first;
+            tie_input(in);
+        }
+        return false;
     }
 };

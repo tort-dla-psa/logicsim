@@ -7,12 +7,12 @@
 #include "basic_elements.h"
 #include "file_ops.h"
 #include "k_tree.hpp"
+#include "iserializable.h"
 
-class sim{
+class sim: public ISerializable{
 public:
     using k_tree_ = k_tree::tree<std::unique_ptr<element>>;
     using k_tree_it = k_tree_::depth_first_iterator;
-
 private:
     k_tree_ elems;
 public:
@@ -88,7 +88,7 @@ public:
 
     inline k_tree_it emplace(const k_tree_it& it, k_tree_::value_type&& val){
         auto &el = (*it);
-        val->parent_id = el->get_id();
+        val->m_parent_id = el->id();
         if(dynamic_cast<elem_meta*>(el.get())){
             auto el_in = dynamic_cast<elem_in*>(val.get());
             auto el_out = dynamic_cast<elem_out*>(val.get());
@@ -103,5 +103,38 @@ public:
             }
         }
         return elems.append_child(it, std::move(val));
+    }
+    
+    void to_json(nlohmann::json &j)const override{
+        nlohmann::json result;
+        auto beg = elems.begin();
+        auto end = elems.end();
+        nlohmann::json tmp;
+        while(beg != end){
+            const auto &elem = *beg; //u_ptr
+            elem->to_json(tmp)
+            result += std::move(tmp);
+            beg++;
+        }
+        j["sim"] = std::move(result);
+    }
+
+    bool from_json(const nlohmann::json &j){
+        std::vector<std::unique_ptr<element>> elems;
+        for(const auto &j_obj:j){
+                auto el = new elem_and("");
+                if(el->from_json(j_obj)){
+                    elems.emplace_back(el);
+                }
+                auto el = new elem_or("");
+                if(el->from_json(j_obj)){
+                    elems.emplace_back(el);
+                }
+            //todo: type to json in alg namespace
+            //todo: docs about extending namespace
+        }
+        auto tree = make_tree(elems);
+        retie(tree.begin(), tree.end());
+        return tree;
     }
 };

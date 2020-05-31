@@ -21,11 +21,16 @@ public:
         auto tmp2 = in1 && in2; //c_out
         std::cout<<"in1:"<<in1<<"\n";
         std::cout<<"in2:"<<in2<<"\n";
-        std::cout<<"tmp1:"<<tmp1<<"\n";
-        std::cout<<"tmp2:"<<tmp2<<"\n";
+        std::cout<<"sum:"<<tmp1<<"\n";
+        std::cout<<"cout:"<<tmp2<<"\n";
         outs.at(0)->set_value({tmp1});
         outs.at(1)->set_value({tmp2});
     }
+
+    auto& get_a(){ return ins.at(0); }
+    auto& get_b(){ return ins.at(1); }
+    auto& get_sum(){ return outs.at(0); }
+    auto& get_cout(){ return outs.at(1); }
 };
 
 class full_adder:public element{
@@ -40,28 +45,30 @@ public:
         outs.clear();
         adders.reserve(size*2);
         ors.reserve(size);
+        std::shared_ptr<gate_out> prev_cout;
         for(size_t i=0; i<size; i++){
             auto &hf_1 = adders.emplace_back();
             auto &hf_2 = adders.emplace_back();
             auto &or_1 = ors.emplace_back("or");
-            auto in_1 = hf_1.get_in(0);
-            auto in_2 = hf_1.get_in(1);
-            auto c_in = hf_2.get_in(1);
-            auto sum =  hf_2.get_out(0);
+            auto &a = hf_1.get_a();
+            auto &b = hf_1.get_b();
+            auto &c_in = hf_2.get_b();
+            hf_1.get_sum()->tie_input(hf_2.get_a());
+            hf_1.get_cout()->tie_input(or_1.get_in(0));
+            hf_2.get_cout()->tie_input(or_1.get_in(1));
+            auto &sum =  hf_2.get_sum();
             auto c_out = or_1.get_out(0);
-            hf_1.get_out(0)->tie_input(hf_2.get_in(0));
-            hf_1.get_out(1)->tie_input(or_1.get_in(0));
-            hf_2.get_out(1)->tie_input(or_1.get_in(1));
             if(i==0){
                 ins.emplace_back(c_in);
+            }else{
+                prev_cout->tie_input(c_in);
             }
-            ins.emplace_back(in_1);
-            ins.emplace_back(in_2);
+            ins.emplace_back(a);
+            ins.emplace_back(b);
             outs.emplace_back(sum);
-            if(i==size-1){
-                outs.emplace_back(c_out);
-            }
+            prev_cout = c_out;
         }
+        outs.emplace_back(prev_cout);
     }
 
     void process()override{
@@ -82,9 +89,10 @@ public:
 
     template<class Val>
     void set_ins(Val a, Val b){
-        for(size_t i=0; i<sizeof(Val); i++){
+        for(size_t i=0; i<sizeof(Val)*8; i++){
             bool bit_a = (a>>i)&1;
             bool bit_b = (b>>i)&1;
+            std::cout<<bit_a<<" "<<bit_b<<"\n";
             ins.at(1+i*2)->set_value({bit_a});
             ins.at(1+i*2+1)->set_value({bit_b});
         }

@@ -5,87 +5,7 @@
 #include "k_tree.hpp"
 #include "sim/basic_elements.h"
 #include "sim/meta_element.h"
-
-struct elem_view;
-struct gate_view;
-struct gate_view_in;
-struct gate_view_out;
-struct gate_connection;
-
-struct view{
-    std::string name = "generic_name";
-    size_t id, parent_id = -1;
-    long x, y, w, h;
-    
-    enum class state{
-        normal,
-        creating,
-        selected,
-        copied,
-        cut
-    }st;
-
-    view(){};
-    virtual ~view(){}
-};
-
-struct gate_view:view{
-    enum class direction{
-        in,
-        out
-    }dir;
-    size_t bit_width=1;
-    int value=0;
-
-    gate_view(){
-        this->w = 10;
-        this->h = 10;
-    }
-    virtual ~gate_view(){}
-};
-struct gate_view_in:gate_view{
-    gate_view_in():gate_view(){
-        this->dir = gate_view::direction::in;
-    }
-};
-struct gate_view_out:gate_view{
-    std::vector<std::shared_ptr<gate_view_in>> ins;
-    gate_view_out():gate_view(){
-        this->dir = gate_view::direction::out;
-    }
-};
-struct elem_view:view{
-    enum class direction{
-        dir_up,
-        dir_right,
-        dir_down,
-        dir_left
-    }dir = direction::dir_right;
-
-    elem_view(){
-        this->w = 50;
-        this->h = 50;
-    }
-
-    std::vector<std::shared_ptr<gate_view_in>> ins;
-    std::vector<std::shared_ptr<gate_view_out>> outs;
-};
-
-struct elem_view_and:elem_view{};
-struct elem_view_nand:elem_view{};
-struct elem_view_or:elem_view{};
-struct elem_view_nor:elem_view{};
-struct elem_view_xor:elem_view{};
-struct elem_view_xnor:elem_view{};
-struct elem_view_not:elem_view{};
-struct elem_view_gate:elem_view{};
-struct elem_view_in:elem_view_gate{
-    std::shared_ptr<gate_view_in> gt_outer;
-};
-struct elem_view_out:elem_view_gate{
-    std::shared_ptr<gate_view_out> gt_outer;
-};
-struct elem_view_meta:elem_view{};
+#include "elem_views.h"
 
 class sim_ui_glue{
 private:
@@ -97,8 +17,8 @@ private:
 public:
     sim_ui_glue(){
         this->global_root = std::make_shared<elem_view_meta>();
-        this->global_root->id = 0;
-        this->global_root->name = "root";
+        this->global_root->m_id = 0;
+        this->global_root->m_name = "root";
         this->root = global_root;
         tree.set_root(root);
     };
@@ -107,7 +27,7 @@ public:
         this->tree = tree;
         auto root_tree_ptr = *std::find_if(tree.begin(), tree.end(),
             [](const auto &el){
-                return el->id == 0;
+                return el->m_id == 0;
         });
         this->global_root = std::dynamic_pointer_cast<elem_view_meta>(root_tree_ptr);
         this->root = global_root;
@@ -138,7 +58,7 @@ public:
 
     auto find_view(const size_t &id){
         auto predicate = [&id](auto el){
-            return el->id == id;
+            return el->m_id == id;
         };
         return std::find_if(tree.begin(), tree.end(), predicate);
     }
@@ -151,11 +71,11 @@ public:
 
     auto find_views(const long &x, const long &y)const{
         auto predicate = [&x, &y, this](auto view){
-            return (view->x+view->w > x &&
-                view->x <= x &&
-                view->y+view->h > y &&
-                view->y <= y &&
-                view->parent_id == root->id);
+            return (view->m_x+view->m_w > x &&
+                view->m_x <= x &&
+                view->m_y+view->m_h > y &&
+                view->m_y <= y &&
+                view->m_parent_id == root->m_id);
         };
         return find_views(predicate);
     }
@@ -166,22 +86,22 @@ public:
         w = std::abs(w);
         h = std::abs(h);
         auto predicate = [&x, &y, &w, &h, this](auto view){
-            return view->x >= x &&
-                view->x < x+w &&
-                view->y >= y &&
-                view->y < y+h &&
-                view->parent_id == root->id;
+            return view->m_x >= x &&
+                view->m_x < x+w &&
+                view->m_y >= y &&
+                view->m_y < y+h &&
+                view->m_parent_id == root->m_id;
         };
         return find_views(predicate);
     }
 
     k_tree_it add_view(std::shared_ptr<elem_view> view){
-        auto view_it = find_view(view->id);
+        auto view_it = find_view(view->m_id);
         if(view_it != tree.end()){
             *view_it = view;
             return view_it;
         }
-        auto root_it = find_view(root->id);
+        auto root_it = find_view(root->m_id);
         return add_view(root_it, view);
     }
 
@@ -190,7 +110,7 @@ public:
         if(!meta_cast){
             throw std::runtime_error("attempt to add sub-element to an element that is not meta");
         }
-        view->parent_id = meta_cast->id;
+        view->m_parent_id = meta_cast->m_id;
         return tree.append_child(it, view);
     }
 
@@ -225,16 +145,16 @@ public:
 
     auto get_gate(const std::shared_ptr<elem_view>& view, int x, int y)const{
         std::shared_ptr<gate_view> gt;
-        x -= view->x;
-        y -= view->y;
+        x -= view->m_x;
+        y -= view->m_y;
         auto &gates_in = view->ins;
         auto &gates_out = view->outs;
         auto predicate = [&x, &y, &view](auto gate){
-            return gate->x-gate->w/2 <= x &&
-                gate->y-gate->h/2 <= y &&
-                gate->x+gate->w/2 > x &&
-                gate->y+gate->h/2 > y &&
-                gate->parent_id == view->id;
+            return gate->m_x-gate->m_w/2 <= x &&
+                gate->m_y-gate->m_h/2 <= y &&
+                gate->m_x+gate->m_w/2 > x &&
+                gate->m_y+gate->m_h/2 > y &&
+                gate->m_parent_id == view->m_id;
         };
         auto it_in = std::find_if(gates_in.begin(), gates_in.end(), predicate);
         if(it_in != gates_in.end()){
@@ -252,17 +172,17 @@ public:
     auto get_gates(int x, int y)const{
         std::vector<std::shared_ptr<gate_view>> gates;
         auto predicate = [](auto gate, int x_, int y_){
-            return gate->x <= x_ &&
-                gate->y <= y_ &&
-                gate->x+gate->w > x_ &&
-                gate->y+gate->h > y_;
+            return gate->m_x <= x_ &&
+                gate->m_y <= y_ &&
+                gate->m_x+gate->m_w > x_ &&
+                gate->m_y+gate->m_h > y_;
         };
         for(auto &view:tree){
-            if(view->parent_id != root->id){
+            if(view->m_parent_id != root->m_id){
                 continue;
             }
-            int x_ =  x - view->x;
-            int y_ =  y - view->y;
+            int x_ =  x - view->m_x;
+            int y_ =  y - view->m_y;
             auto elem = std::dynamic_pointer_cast<elem_view>(view);
             auto &gates_in = elem->ins;
             auto &gates_out = elem->outs;
@@ -277,10 +197,10 @@ public:
 
     void tie_gates(std::shared_ptr<gate_view> gate_view_1, std::shared_ptr<gate_view> gate_view_2, bool valid){
         auto tie = [&valid](auto cast_in, auto cast_out){
-            auto cast_in_id = cast_in->id;
+            auto cast_in_id = cast_in->m_id;
             auto in_it = std::find_if(cast_out->ins.begin(), cast_out->ins.end(),
                 [&cast_in_id](auto &in){
-                    return in->id == cast_in_id;
+                    return in->m_id == cast_in_id;
             });
             if(in_it == cast_out->ins.end()){
                 cast_out->ins.emplace_back(cast_in);
@@ -323,22 +243,22 @@ public:
         }
         auto id = elem->get_id();
 
-        view->name = elem->get_name();
-        view->id = id;
+        view->m_name = elem->get_name();
+        view->m_id = id;
         view->dir = elem_view::direction::dir_right;
         view->st = elem_view::state::normal;
-        view->parent_id = this->get_root()->id;
+        view->m_parent_id = this->get_root()->m_id;
 
         place_gates_in(view, elem);
         place_gates_out(view, elem);
 
         if(elem_in_cast){
             auto outer = std::make_shared<gate_view_in>();
-            outer->id = elem_in_cast->get_outer_id();
+            outer->m_id = elem_in_cast->get_outer_id();
             in_cast->gt_outer = outer;
         }else if(elem_out_cast){
             auto outer = std::make_shared<gate_view_out>();
-            outer->id = elem_out_cast->get_outer_id();
+            outer->m_id = elem_out_cast->get_outer_id();
             out_cast->gt_outer = outer;
         }
         return view;
@@ -350,20 +270,19 @@ public:
         if(elem->get_ins_size() == 0){
             return;
         }
-        long ins_offset = view->h/elem->get_ins_size();
+        long ins_offset = view->m_h/elem->get_ins_size();
         long ins_x = 0;
         long ins_y = ins_offset/2;
-        auto gt_ = std::make_shared<gate_view_in>();
-        gt_->x = ins_x;
-        gt_->parent_id = view->id;
         for(size_t i=0; i<elem->get_ins_size(); i++){
-            auto gt = std::make_shared<gate_view_in>(*gt_);
-            gt->y = ins_y;
+            auto gt = std::make_shared<gate_view_in>();
+            gt->m_x = ins_x;
+            gt->m_parent_id = view->m_id;
+            gt->m_y = ins_y;
             ins_y += ins_offset;
             auto gt_in = elem->get_in(i);
-            gt->id = gt_in->get_id();
-            gt->name = gt_in->get_name();
-            gt->bit_width = gt_in->get_width();
+            gt->m_id = gt_in->get_id();
+            gt->m_name = gt_in->get_name();
+            gt->m_bit_width = gt_in->get_width();
             view->ins.emplace_back(gt);
         }
     }
@@ -374,20 +293,17 @@ public:
         if(elem->get_outs_size() == 0){
             return;
         }
-        long outs_offset = view->h/elem->get_outs_size();
-        long outs_x = view->w;
+        long outs_offset = view->m_h/elem->get_outs_size();
+        long outs_x = view->m_w;
         long outs_y = outs_offset/2;
-        auto gt_ = std::make_shared<gate_view_out>();
-        gt_->x = outs_x;
-        gt_->parent_id = view->id;
         for(size_t i = 0; i < elem->get_outs_size(); i++){
-            auto gt = std::make_shared<gate_view_out>(*gt_);
-            gt->y = outs_y;
-            outs_y += outs_offset;
+            auto gt = std::make_shared<gate_view_out>();
+            gt->m_x = outs_x;
+            gt->m_parent_id = view->m_id;
             auto gt_out = elem->get_out(i); 
-            gt->id = gt_out->get_id();
-            gt->name = gt_out->get_name();
-            gt->bit_width = gt_out->get_width();
+            gt->m_id = gt_out->get_id();
+            gt->m_name = gt_out->get_name();
+            gt->m_bit_width = gt_out->get_width();
             view->outs.emplace_back(gt);
         }
     }

@@ -6,9 +6,11 @@ find_package(Qt5Gui REQUIRED)
 
 set(UI_HEADERS include/ui/mainwindow.h
 	include/ui/draw_widget.h
+	include/ui/elem_views.h
 	include/ui/prop_pair.h
 	include/ui/properties.h
 	include/ui/sim_interface.h
+	include/ui/sim_ui_glue.h
 	)
 
 set(UI_SRCS src/ui/mainwindow.cpp

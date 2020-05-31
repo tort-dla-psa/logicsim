@@ -11,6 +11,7 @@ properties::properties(QWidget* parent)
     ui->scrollArea->setLayout(this->scroll_layout);
 
     auto prop = props.emplace_back(new prop_pair("name", "Name", this));
+    /*
     prop->set_getter([](auto view){
         return QString::fromStdString(view->name);
     }); 
@@ -18,8 +19,10 @@ properties::properties(QWidget* parent)
         auto le = prop->get_line_edit();
         view->name = le->text().toStdString();
     }); 
+    */
 
     prop = props.emplace_back(new prop_pair("x", "X", this));
+    /*
     prop->set_getter([](auto view){
         return QString::number(view->x);
     }); 
@@ -27,8 +30,10 @@ properties::properties(QWidget* parent)
         auto le = prop->get_line_edit();
         view->x = le->text().toLong();
     }); 
+    */
 
     prop = props.emplace_back(new prop_pair("y", "Y", this));
+    /*
     prop->set_getter([](auto view){
         return QString::number(view->y);
     }); 
@@ -36,8 +41,10 @@ properties::properties(QWidget* parent)
         auto le = prop->get_line_edit();
         view->y = le->text().toLong();
     }); 
+    */
 
     prop = props.emplace_back(new prop_pair("w", "W", this));
+    /*
     prop->set_getter([](auto view){
         return QString::number(view->w);
     }); 
@@ -45,8 +52,10 @@ properties::properties(QWidget* parent)
         auto le = prop->get_line_edit();
         view->w = le->text().toLong();
     }); 
+    */
 
     prop = props.emplace_back(new prop_pair("h", "H", this));
+    /*
     prop->set_getter([](auto view){
         return QString::number(view->h);
     }); 
@@ -54,8 +63,10 @@ properties::properties(QWidget* parent)
         auto le = prop->get_line_edit();
         view->h = le->text().toLong();
     }); 
+    */
 
     prop = props.emplace_back(new prop_pair("bit_w", "bits", this));
+    /*
     prop->set_getter([](auto view){
         auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
         if(cast_in){
@@ -89,9 +100,11 @@ properties::properties(QWidget* parent)
             gate_cast->bit_width = data;
         }
     }); 
+    */
     prop->hide();
 
     prop = props.emplace_back(new prop_pair("value", "Value", this));
+    /*
     prop->set_getter([](auto view){
         auto cast_gate = std::dynamic_pointer_cast<gate_view>(view);
         if(cast_gate){
@@ -111,10 +124,11 @@ properties::properties(QWidget* parent)
         auto le = prop->get_line_edit();
         auto cast_in = std::dynamic_pointer_cast<elem_view_in>(view);
         if(cast_in){
-            cast_in->outs.at(0)->bit_width = le->text().toLong();
+            cast_in->outs.at(0)->value = le->text().toLong();
             return;
         }
     });
+    */
     prop->hide();
 
     for(auto prop:props){
