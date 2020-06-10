@@ -12,18 +12,17 @@ public:
     using ins_vec = std::vector<std::shared_ptr<gate_in>>;
 private:
     friend class elem_file_saver;
-    ins_vec ins;
+    ins_vec m_ins;
 public:
-    gate_out(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
+    gate_out(const std::string &name="gate_out", const size_t &width=1, const size_t &parent_id=0)
         :gate(name, width, parent_id),
-        ISerializable(),
         nameable(name, parent_id)
     {}
     ~gate_out(){}
 
     void pass_value()const{
         auto &val = this->value();
-        for(auto &in:ins){
+        for(auto &in:m_ins){
             in->set_value(val);
         }
     }
@@ -38,43 +37,43 @@ public:
                 "to an output "+name()+" of width "+std::to_string(width());
             throw std::runtime_error(mes);
         }
-        this->ins.emplace_back(in);
+        this->m_ins.emplace_back(in);
     }
     void untie_input(const std::shared_ptr<gate_in> &in){
-        auto it = std::find(ins.begin(), ins.end(), in);
-        if(it == ins.end()){
+        auto it = std::find(m_ins.begin(), m_ins.end(), in);
+        if(it == m_ins.end()){
             auto mes = "attempt to untie input "+in->name()+
                 "from an output "+name()+", but they are not tied";
             throw std::runtime_error(mes);
         }
-        ins.erase(it);
+        m_ins.erase(it);
     }
     bool tied(const std::shared_ptr<gate_in> &in){
-        auto it = std::find(ins.begin(), ins.end(), in);
-        return !(it == ins.end());
+        auto it = std::find(m_ins.begin(), m_ins.end(), in);
+        return !(it == m_ins.end());
     }
 
-    auto get_tied_begin()       { return ins.begin(); }
-    auto get_tied_begin()const  { return ins.begin(); }
-    auto get_tied_cbegin()const { return ins.begin(); }
-    auto get_tied_rbegin()      { return ins.rbegin(); }
-    auto get_tied_rbegin()const { return ins.rbegin(); }
-    auto get_tied_crbegin()const{ return ins.rbegin(); }
-    auto get_tied_end()         { return ins.end(); }
-    auto get_tied_end()const    { return ins.end(); }
-    auto get_tied_cend()const   { return ins.end(); }
-    auto get_tied_rend()        { return ins.rend(); }
-    auto get_tied_rend()const   { return ins.rend(); }
-    auto get_tied_crend()const  { return ins.rend(); }
-    auto& get_tied()const       { return ins; }
-    auto& get_tied()            { return ins; }
+    auto tied_begin()       { return m_ins.begin(); }
+    auto tied_begin()const  { return m_ins.begin(); }
+    auto tied_cbegin()const { return m_ins.begin(); }
+    auto tied_rbegin()      { return m_ins.rbegin(); }
+    auto tied_rbegin()const { return m_ins.rbegin(); }
+    auto tied_crbegin()const{ return m_ins.rbegin(); }
+    auto tied_end()         { return m_ins.end(); }
+    auto tied_end()const    { return m_ins.end(); }
+    auto tied_cend()const   { return m_ins.end(); }
+    auto tied_rend()        { return m_ins.rend(); }
+    auto tied_rend()const   { return m_ins.rend(); }
+    auto tied_crend()const  { return m_ins.rend(); }
+    auto& tied()const       { return m_ins; }
+    auto& tied()            { return m_ins; }
 
     friend bool operator==(const gate_out &lhs, const gate_out &rhs){
         const nameable &lhs_n(lhs);
         const nameable &rhs_n(rhs);
         const gate &lhs_g(lhs);
         const gate &rhs_g(rhs);
-        bool ins_eq = std::equal(lhs.ins.begin(), lhs.ins.end(), rhs.ins.begin(),
+        bool ins_eq = std::equal(lhs.m_ins.begin(), lhs.m_ins.end(), rhs.m_ins.begin(),
             [](auto ptr1, auto ptr2){
                 return (ptr1 && ptr2) && (*ptr1 == *ptr2);
             });
@@ -92,8 +91,8 @@ public:
         j["name"] = name();
         j["width"] = width();
         std::vector<std::pair<size_t, size_t>> ids;
-        ids.reserve(ins.size());
-        for(auto &in:ins){
+        ids.reserve(m_ins.size());
+        for(auto &in:m_ins){
             ids.emplace_back(in->id(), in->parent_id());
         }
         j["tied"] = std::move(ids);

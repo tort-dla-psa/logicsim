@@ -5,15 +5,8 @@
 
 class view:public QObject, virtual public ISerializable{
     Q_OBJECT
-protected:
-    friend class gate_view_in;
-    friend class gate_view_out;
-    friend class sim_ui_glue;
-    std::string m_name = "generic_name";
-    size_t m_id, m_parent_id = -1;
-    long m_x, m_y, m_w, m_h;
 public:
-    enum class state{
+    enum state{
         normal,
         creating,
         selected,
@@ -21,6 +14,13 @@ public:
         cut
     };
 protected:
+    friend class gate_view_in;
+    friend class gate_view_out;
+    friend class sim_ui_glue;
+    friend class sim_interface;
+    std::string m_name = "generic_name";
+    size_t m_id, m_parent_id = -1;
+    long m_x, m_y, m_w, m_h;
     enum state st;
 public:
     view(){}
@@ -70,12 +70,14 @@ signals:
 };
 
 class gate_view:public view{
+    Q_OBJECT
 public:
     enum class direction{
         in,
         out
     };
 protected:
+    friend class sim_interface;
     friend class sim_ui_glue;
     friend class elem_file_saver;
     enum direction m_dir;
@@ -119,7 +121,7 @@ public:
         m_dir = (enum direction)j.at("direction");
         return true;
     };
-    void to_json(nlohmann::json &j)const{
+    void to_json(nlohmann::json &j)const override{
         view::to_json(j);
         j["token"] = token();
         j["value"] = m_value;
@@ -131,11 +133,13 @@ public:
 class gate_view_out:public gate_view{
     friend class sim_ui_glue;
     friend class elem_file_saver;
-    std::vector<std::shared_ptr<gate_view_in>> ins;
+    std::vector<std::shared_ptr<gate_view_in>> m_ins;
 public:
     gate_view_out():gate_view(){
         this->m_dir = gate_view::direction::out;
     }
+    auto& ins(){ return m_ins; }
+    auto& ins()const{ return m_ins; }
     virtual bool from_json(const nlohmann::json &j){
         view::from_json(j);
         if(j.at("token") != token()){
@@ -150,19 +154,19 @@ public:
             auto in = std::make_shared<gate_view_in>();
             in->m_parent_id = p.second;
             in->m_id = p.first;
-            this->ins.emplace_back(in);
+            this->m_ins.emplace_back(in);
         }
         return true;
     };
-    virtual void to_json(nlohmann::json &j)const{
+    virtual void to_json(nlohmann::json &j)const override{
         view::to_json(j);
         j["token"] = token();
         j["value"] = m_value;
         j["bit_width"] = m_bit_width;
         j["direction"] = (int)m_dir;
         std::vector<std::pair<size_t, size_t>> ids;
-        ids.reserve(ins.size());
-        for(auto &conn:ins){
+        ids.reserve(m_ins.size());
+        for(auto &conn:m_ins){
             ids.emplace_back(conn->id(), conn->parent_id());
         }
         j["tied"] = std::move(ids);
@@ -179,10 +183,10 @@ public:
     };
 protected:
     friend class sim_ui_glue;
+    friend class sim_interface;
     direction m_dir;
     std::vector<std::shared_ptr<gate_view_in>> ins;
     std::vector<std::shared_ptr<gate_view_out>> outs;
-
 public:
     elem_view(){
         this->m_w = 50;
@@ -210,19 +214,18 @@ public:
         }
         return true;
     };
-    virtual void to_json(nlohmann::json &j)const{
+    virtual void to_json(nlohmann::json &j)const override{
         view::to_json(j);
         j["token"] = token();
         std::vector<nlohmann::json> ins,outs;
+        nlohmann::json tmp;
         for(auto &gt:this->ins){
-            nlohmann::json tmp;
             gt->to_json(tmp);
-            ins.emplace_back(gt);
+            ins.emplace_back(std::move(tmp));
         }
         for(auto &gt:this->outs){
-            nlohmann::json tmp;
             gt->to_json(tmp);
-            outs.emplace_back(gt);
+            outs.emplace_back(std::move(tmp));
         }
         j["ins"] = std::move(ins);
         j["outs"] = std::move(outs);
@@ -239,6 +242,7 @@ class elem_view_not:public elem_view{};
 class elem_view_gate:public elem_view{};
 class elem_view_in:public elem_view_gate{
     friend class sim_ui_glue;
+    friend class sim_interface;
     std::shared_ptr<gate_view_in> gt_outer;
 public:
     virtual bool from_json(const nlohmann::json &j)override{
@@ -260,6 +264,7 @@ public:
 };
 class elem_view_out:public elem_view_gate{
     friend class sim_ui_glue;
+    friend class sim_interface;
     std::shared_ptr<gate_view_out> gt_outer;
 public:
     bool from_json(const nlohmann::json &j)override{
@@ -271,7 +276,7 @@ public:
         gt_outer->from_json(j.at("gate_outer"));
         return true;
     }
-    void to_json(nlohmann::json &j)const{
+    void to_json(nlohmann::json &j)const override{
         elem_view::to_json(j);
         j["token"] = token();
         nlohmann::json tmp;

@@ -1,7 +1,7 @@
-#include "properties.h"
-#include "prop_pair.h"
+#include "ui/properties.h"
+#include "ui/prop_pair.h"
+#include "ui/sim_ui_glue.h"
 #include "ui_properties.h"
-#include "sim_ui_glue.h"
 
 properties::properties(QWidget* parent)
     :QWidget(parent), ui(new Ui::properties)
@@ -192,7 +192,7 @@ void properties::slot_element_selected(std::shared_ptr<view> view){
         if(prop->isHidden()){
             continue;
         }
-        prop->set_line_edit_value(view);
+        //prop->get_line_edit()->setText(view);
     }
 }
 void properties::slot_prop_changed(){

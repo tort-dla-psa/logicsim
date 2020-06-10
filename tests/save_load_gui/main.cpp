@@ -13,7 +13,7 @@ int main(){
     auto glue = sim_ui_glue();
     size_t w = 1000, h = 1000;
     for(auto &el:sim1){
-        auto parent_id = el->get_parent_id();
+        auto parent_id = el->parent_id();
         auto parent_view_it = glue.find_view(parent_id);
         auto view = glue.elem_to_view(el);
         glue.add_view(parent_view_it, view);

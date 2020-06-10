@@ -1,5 +1,5 @@
 #include <QPainter>
-#include "draw_widget.h"
+#include "ui/draw_widget.h"
 
 draw_widget::draw_widget(QWidget *parent)
 	:QWidget(parent)

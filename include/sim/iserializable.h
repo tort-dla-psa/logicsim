@@ -5,11 +5,19 @@
 class ISerializable{
     static inline size_t last_token=-1;
 protected:
-    const size_t m_token;
-protected:
+    size_t m_token;
+
     ISerializable()
         :m_token(++last_token)
     {}
+public:
+    ISerializable(const ISerializable& rhs)
+        :m_token(rhs.m_token)
+    {}
+    auto& operator=(const ISerializable &rhs){
+        this->m_token = rhs.m_token;
+        return *this;
+    }
     virtual ~ISerializable(){}
 
     int token()const{ return m_token; }

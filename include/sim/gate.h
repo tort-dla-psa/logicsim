@@ -14,8 +14,7 @@ protected:
     std::vector<bool> m_value;
 
     gate(const std::string &name, const size_t &width=1, const size_t &parent_id=0)
-        :nameable(name, parent_id),
-        ISerializable()
+        :nameable(name, parent_id)
     {
         set_width(width);
     }

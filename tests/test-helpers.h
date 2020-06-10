@@ -18,7 +18,7 @@ inline auto construct_test_sim(){
     auto meta_elem = std::make_unique<elem_meta>("meta1");
     auto in_elem = std::make_unique<elem_in>("in");
     auto out_elem = std::make_unique<elem_out>("out");
-    in_elem->get_out(0)->tie_input(out_elem->get_in(0));
+    in_elem->out(0)->tie_input(out_elem->in(0));
     auto meta_it = sim.emplace(root_it, std::move(meta_elem));
     sim.emplace(meta_it, std::move(in_elem));
     sim.emplace(meta_it, std::move(out_elem));
@@ -26,9 +26,9 @@ inline auto construct_test_sim(){
     auto in_elem2 = std::make_unique<elem_in>("in2");
     auto out_elem2 = std::make_unique<elem_out>("out2");
     auto not_elem = std::make_unique<elem_not>("not1");
-    in_elem2->get_out(0)->tie_input(not_elem->get_in(0));
-    not_elem->get_out(0)->tie_input((*meta_it)->get_in(0));
-    (*meta_it)->get_out(0)->tie_input(out_elem2->get_in(0));
+    in_elem2->out(0)->tie_input(not_elem->in(0));
+    not_elem->out(0)->tie_input((*meta_it)->in(0));
+    (*meta_it)->out(0)->tie_input(out_elem2->in(0));
     sim.emplace(root_it, std::move(in_elem2));
     sim.emplace(root_it, std::move(out_elem2));
     sim.emplace(root_it, std::move(not_elem));
@@ -37,11 +37,11 @@ inline auto construct_test_sim(){
 
 bool sims_are_equal(sim &sim1, sim &sim2){
     auto assert_nameable = [](const auto &el1, const auto &el2){
-        bool status = (el1->get_name() == el2->get_name()) &&
-            (el1->get_id() == el2->get_id()) &&
-            (el1->get_parent_id() == el2->get_parent_id());
+        bool status = (el1->name() == el2->name()) &&
+            (el1->id() == el2->id()) &&
+            (el1->parent_id() == el2->parent_id());
         if(!status){
-            std::cerr<<"nameable "<<el1->get_name()<<" != "<<el2->get_name()<<"\n";
+            std::cerr<<"nameable "<<el1->name()<<" != "<<el2->name()<<"\n";
         }
         return status;
     };
@@ -67,15 +67,15 @@ bool sims_are_equal(sim &sim1, sim &sim2){
         }
 
         {
-            auto el1_in_it = el1->get_ins_begin();
-            auto el2_in_it = el2->get_ins_begin();
-            const auto el1_in_it_end = el1->get_ins_end();
-            const auto el2_in_it_end = el2->get_ins_end();
+            auto el1_in_it = el1->ins_begin();
+            auto el2_in_it = el2->ins_begin();
+            const auto el1_in_it_end = el1->ins_end();
+            const auto el2_in_it_end = el2->ins_end();
             d1 = std::distance(el1_in_it, el1_in_it_end);
             d2 = std::distance(el2_in_it, el2_in_it_end);
             if(d1 != d2){
-                std::cerr<<"d1 of ins of "<<el1->get_name()
-                    <<" != d2 of ins of "<<el2->get_name()<<"\n";
+                std::cerr<<"d1 of ins of "<<el1->name()
+                    <<" != d2 of ins of "<<el2->name()<<"\n";
                 return false;
             }
                 
@@ -91,15 +91,15 @@ bool sims_are_equal(sim &sim1, sim &sim2){
         }
 
         {
-            auto el1_out_it = el1->get_outs_begin();
-            auto el2_out_it = el2->get_outs_begin();
-            const auto el1_out_it_end = el1->get_outs_end();
-            const auto el2_out_it_end = el2->get_outs_end();
+            auto el1_out_it = el1->outs_begin();
+            auto el2_out_it = el2->outs_begin();
+            const auto el1_out_it_end = el1->outs_end();
+            const auto el2_out_it_end = el2->outs_end();
             d1 = std::distance(el1_out_it, el1_out_it_end);
             d2 = std::distance(el2_out_it, el2_out_it_end);
             if(d1 != d2){
-                std::cerr<<"d1 of outs of "<<el1->get_name()
-                    <<" != d2 of outs of "<<el2->get_name()<<"\n";
+                std::cerr<<"d1 of outs of "<<el1->name()
+                    <<" != d2 of outs of "<<el2->name()<<"\n";
             }
             for(;el1_out_it != el1_out_it_end && el2_out_it != el2_out_it_end;
                 el1_out_it++, el2_out_it++)
@@ -110,15 +110,15 @@ bool sims_are_equal(sim &sim1, sim &sim2){
                     return false;
                 }
 
-                auto out1_in = out1->get_tied_begin();
-                auto out1_in_end = out1->get_tied_end();
-                auto out2_in = out2->get_tied_begin();
-                auto out2_in_end = out2->get_tied_end();
+                auto out1_in = out1->tied_begin();
+                auto out1_in_end = out1->tied_end();
+                auto out2_in = out2->tied_begin();
+                auto out2_in_end = out2->tied_end();
                 d1 = std::distance(out1_in, out1_in_end);
                 d2 = std::distance(out2_in, out2_in_end);
                 if(d1 != d2){
-                    std::cerr<<"d1 of connected ins of "<<out1->get_name()<<"::"<<el1->get_name()
-                        <<" != d2 of connected ins of "<<out2->get_name()<<"::"<<el2->get_name()<<"\n";
+                    std::cerr<<"d1 of connected ins of "<<out1->name()<<"::"<<el1->name()
+                        <<" != d2 of connected ins of "<<out2->name()<<"::"<<el2->name()<<"\n";
                     return false;
                 }
                 for(;out1_in != out1_in_end && out2_in != out2_in_end;

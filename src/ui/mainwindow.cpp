@@ -1,7 +1,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
-#include "mainwindow.h"
-#include "prop_pair.h"
+#include "ui/mainwindow.h"
+#include "ui/prop_pair.h"
 #include "ui_mainwindow.h"
 #include "sim/basic_elements.h"
 

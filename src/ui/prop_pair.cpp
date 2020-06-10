@@ -1,5 +1,5 @@
-#include "prop_pair.h"
-#include "sim_ui_glue.h"
+#include "ui/prop_pair.h"
+#include "ui/sim_ui_glue.h"
 
 prop_pair::prop_pair(const QString &name, const QString &lbl_txt, QWidget *parent):
     prop_pair(name, lbl_txt, "", parent)

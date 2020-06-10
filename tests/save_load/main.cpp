@@ -1,7 +1,9 @@
+#include "nlohmann/json.hpp"
 #include "sim/sim.h"
 #include "test-helpers.h"
 #include "sim/file_ops.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 
@@ -9,21 +11,25 @@ int main(){
     auto path = std::filesystem::path("/tmp/sim_save.sim");
     auto sim1 = test_helpers::construct_test_sim();
 
-    elem_file_saver saver;
-    auto json_save = saver.sim_to_json(sim1.begin(), sim1.end());
+    nlohmann::json j;
+    sim1.to_json(j);
     if(std::filesystem::exists(path)){
         std::filesystem::remove(path);
     }
-    saver.save_json(json_save, path);
 
-    auto json_load = saver.load_json(path);
+    std::ofstream os(path);
+    os << j;
+    os.close();
 
-    std::cout<< "asserting that jsons are equal...";
-    assert(json_load == json_save);
-    std::cout<< " done\n";
+    j.clear();
 
-    auto sim2_tree = saver.sim_from_json(json_load);
-    sim sim2(std::move(sim2_tree));
+    std::ifstream is(path);
+    is >> j;
+    is.close();
+
+    sim sim2;
+    sim2.from_json(j);
+
     if(!test_helpers::sims_are_equal(sim1, sim2)){
         return -1;
     }else{

@@ -8,6 +8,7 @@
 #include "file_ops.h"
 #include "k_tree.hpp"
 #include "iserializable.h"
+#include "utils.h"
 
 class sim: public ISerializable{
 public:
@@ -62,8 +63,8 @@ public:
     inline k_tree_it get_by_id(const k_tree_it& begin, const k_tree_it& end, const size_t &id){
         return get_by_predicate(begin, end,
             [&id](auto &el){
-            return el->get_id() == id;
-        });
+                return el->id() == id;
+            });
     }
 
     inline k_tree_it get_by_predicate(std::function<bool(const k_tree_::value_type&)> predicate){
@@ -106,35 +107,26 @@ public:
     }
     
     void to_json(nlohmann::json &j)const override{
-        nlohmann::json result;
-        auto beg = elems.begin();
-        auto end = elems.end();
+        std::vector<nlohmann::json> result;
         nlohmann::json tmp;
-        while(beg != end){
-            const auto &elem = *beg; //u_ptr
-            elem->to_json(tmp)
-            result += std::move(tmp);
-            beg++;
+        for(auto &elem:elems){
+            elem->to_json(tmp);
+            result.emplace_back(std::move(tmp));
         }
         j["sim"] = std::move(result);
     }
 
-    bool from_json(const nlohmann::json &j){
+    bool from_json(const nlohmann::json &j)override{
         std::vector<std::unique_ptr<element>> elems;
         for(const auto &j_obj:j){
-                auto el = new elem_and("");
-                if(el->from_json(j_obj)){
-                    elems.emplace_back(el);
-                }
-                auto el = new elem_or("");
-                if(el->from_json(j_obj)){
-                    elems.emplace_back(el);
-                }
-            //todo: type to json in alg namespace
-            //todo: docs about extending namespace
+            auto el = utils::from_json_el(j_obj);
+            if(!el){
+                return false;
+            }
+            elems.emplace_back(el);
         }
-        auto tree = make_tree(elems);
-        retie(tree.begin(), tree.end());
-        return tree;
+        auto tree = utils::make_tree(std::move(elems));
+        utils::retie(tree.begin(), tree.end());
+        return true;
     }
 };

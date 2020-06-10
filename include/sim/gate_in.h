@@ -4,9 +4,8 @@
 
 class gate_in:public gate{
 public:
-    gate_in(const std::string &name="unnamed", const size_t &width=1, const size_t &parent_id=0)
+    gate_in(const std::string &name="gate_in", const size_t &width=1, const size_t &parent_id=0)
         :gate(name, width, parent_id),
-        ISerializable(),
         nameable(name, parent_id)
     {}
     ~gate_in(){}

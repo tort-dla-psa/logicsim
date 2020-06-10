@@ -163,13 +163,13 @@
   <customwidget>
    <class>sim_interface</class>
    <extends>QWidget</extends>
-   <header>sim_interface.h</header>
+   <header>ui/sim_interface.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>properties</class>
    <extends>QWidget</extends>
-   <header>properties.h</header>
+   <header>ui/properties.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
